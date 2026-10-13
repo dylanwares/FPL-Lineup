@@ -4,14 +4,15 @@ import { useEffect, useRef } from "react";
 import { Kit } from "@/components/Kit";
 import { FlagIcon } from "@/components/ui/Badges";
 import { FdrPill } from "@/components/ui/FdrPill";
-import { Close } from "@/components/ui/Icons";
+import { Close, Swap, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { xpFor } from "@/data/model";
 import { sellingPrice } from "@/engine/money";
-import { isStarter } from "@/engine/squad";
+import { canSwap, isStarter } from "@/engine/squad";
 import { useGwView } from "./hooks";
-import { fixtureMetrics, formatPrice, playerFlag } from "./model";
-import { closeSheet, setCaptain, setVice, usePlanner } from "./store";
+import { playerList } from "./lazy-parts";
+import { engineContext, fixtureMetrics, formatPrice, playerFlag } from "./model";
+import { closeSheet, setCaptain, setVice, startMoveFor, usePlanner } from "./store";
 
 const POSITION_NAMES = { GKP: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
 
@@ -40,6 +41,10 @@ function Sheet({ id }: { id: number }) {
 
   const state = view.kind === "plan" ? view.state : null;
   const starter = state ? isStarter(state.slots, id) : false;
+  const owned = state ? state.slots.includes(id) : false;
+  const ctx = engineContext(data);
+  const canSub =
+    !!state && owned && state.slots.some((other) => canSwap(state.slots, id, other, ctx.position, ctx.rules));
   const purchase = state?.purchase[id];
   const flag = playerFlag(player);
   const fixtures = Array.from({ length: 5 }, (_, i) => gw + i).filter((g) => g <= data.events.length);
@@ -124,8 +129,29 @@ function Sheet({ id }: { id: number }) {
           })}
         </ul>
 
-        {state && (
+        {state && owned && (
           <div className="mt-5 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <PillButton
+                className="justify-center"
+                disabled={!canSub}
+                onClick={() => startMoveFor(id, "sub")}
+              >
+                <Swap />
+                Substitute
+              </PillButton>
+              <PillButton
+                className="justify-center"
+                onPointerEnter={() => void playerList.preload().catch(() => {})}
+                onClick={() => {
+                  void playerList.preload().catch(() => {});
+                  startMoveFor(id, "transfer");
+                }}
+              >
+                <Transfer />
+                Transfer
+              </PillButton>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <PillButton
                 variant="neon"

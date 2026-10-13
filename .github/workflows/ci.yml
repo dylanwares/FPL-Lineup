@@ -29,6 +29,17 @@ jobs:
       - run: pnpm exec prettier --check .
       - run: pnpm build
 
+      # End-to-end planner flows against the production build (FPL is mocked).
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright
+          path: test-results
+          if-no-files-found: ignore
+
       # Performance budgets (spec: planner JS < 150 KB gzip, LCP < 2.0 s on mobile).
       - run: pnpm size
       - run: pnpm lhci

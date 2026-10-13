@@ -3,10 +3,25 @@
  * ad board that brands shared screenshots. Goal at the top, as in FPL.
  * Players go in `children`, one element per formation row (GK row first).
  */
-export function Pitch({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function Pitch({
+  children,
+  mode = null,
+  className = "",
+}: {
+  children: React.ReactNode;
+  /** The active mode, outlined round the pitch: mint for subs, violet for transfers. */
+  mode?: "sub" | "transfer" | null;
+  className?: string;
+}) {
+  const ring =
+    mode === "transfer"
+      ? "ring-2 ring-violet"
+      : mode === "sub"
+        ? "ring-2 ring-mint/70"
+        : "ring-1 ring-white/8";
   return (
     <div
-      className={`pitch relative overflow-hidden rounded-2xl shadow-[0_12px_32px_rgb(0_0_0/0.35)] ring-1 ring-white/8 ${className}`}
+      className={`pitch relative overflow-hidden rounded-2xl shadow-[0_12px_32px_rgb(0_0_0/0.35)] transition-shadow ${ring} ${className}`}
     >
       <AdBoard />
       <div className="relative aspect-[400/470]">
