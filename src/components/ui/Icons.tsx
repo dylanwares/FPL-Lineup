@@ -1,0 +1,37 @@
+/** Stroke icons on a 24px grid; size and colour come from className/currentColor. */
+function Icon({ d, className = "size-4" }: { d: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+type P = { className?: string };
+
+export const ChevronLeft = (p: P) => <Icon d="m15 5-7 7 7 7" {...p} />;
+export const ChevronRight = (p: P) => <Icon d="m9 5 7 7-7 7" {...p} />;
+export const ChevronDown = (p: P) => <Icon d="m6 9 6 6 6-6" {...p} />;
+export const Plus = (p: P) => <Icon d="M12 5v14M5 12h14" {...p} />;
+export const Pencil = (p: P) => <Icon d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" {...p} />;
+export const Trash = (p: P) => <Icon d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" {...p} />;
+export const Swap = (p: P) => <Icon d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" {...p} />;
+export const Transfer = (p: P) => (
+  <Icon d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" {...p} />
+);
+export const Shirt = (p: P) => <Icon d="M8 3 3 6l2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0Z" {...p} />;
+export const Refresh = (p: P) => <Icon d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" {...p} />;
+export const Logout = (p: P) => <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" {...p} />;
+export const Close = (p: P) => <Icon d="M6 6l12 12M18 6 6 18" {...p} />;
+export const Camera = (p: P) => (
+  <Icon d="M4 8h3l2-3h6l2 3h3v11H4ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...p} />
+);

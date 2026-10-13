@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+public/data
+src/data/generated
+.next
+.lighthouseci
+spec.md
+AGENTS.md

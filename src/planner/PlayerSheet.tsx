@@ -1,0 +1,169 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { Kit } from "@/components/Kit";
+import { FlagIcon } from "@/components/ui/Badges";
+import { FdrPill } from "@/components/ui/FdrPill";
+import { Close } from "@/components/ui/Icons";
+import { PillButton } from "@/components/ui/PillButton";
+import { xpFor } from "@/data/model";
+import { sellingPrice } from "@/engine/money";
+import { isStarter } from "@/engine/squad";
+import { useGwView } from "./hooks";
+import { fixtureMetrics, formatPrice, playerFlag } from "./model";
+import { closeSheet, setCaptain, setVice, usePlanner } from "./store";
+
+const POSITION_NAMES = { GKP: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
+
+export function PlayerSheet() {
+  const id = usePlanner((s) => s.sheetPlayer);
+  if (id == null) return null;
+  return <Sheet id={id} />;
+}
+
+function Sheet({ id }: { id: number }) {
+  const data = usePlanner((s) => s.data)!;
+  const gw = usePlanner((s) => s.gw);
+  const view = useGwView();
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    panel.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const player = data.playerById.get(id);
+  const team = player && data.teamById.get(player.team);
+  if (!player || !team) return null;
+
+  const state = view.kind === "plan" ? view.state : null;
+  const starter = state ? isStarter(state.slots, id) : false;
+  const purchase = state?.purchase[id];
+  const flag = playerFlag(player);
+  const fixtures = Array.from({ length: 5 }, (_, i) => gw + i).filter((g) => g <= data.events.length);
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center">
+      <button
+        type="button"
+        aria-label="Close"
+        className="fade-in absolute inset-0 bg-black/55"
+        onClick={closeSheet}
+      />
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sheet-title"
+        tabIndex={-1}
+        className="glass-strong sheet-in relative w-full max-w-lg rounded-t-2xl px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--line)]" />
+        <div className="flex items-start gap-3">
+          <Kit kit={team.kit} goalkeeper={player.pos === "GKP"} className="size-14 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h2 id="sheet-title" className="font-display text-xl leading-tight font-bold">
+              {player.name}
+            </h2>
+            <p className="text-sm text-muted">
+              {team.name} · {POSITION_NAMES[player.pos]}
+            </p>
+          </div>
+          <PillButton size="icon" aria-label="Close" onClick={closeSheet}>
+            <Close className="size-4" />
+          </PillButton>
+        </div>
+
+        {player.news && (
+          <p className="mt-3 flex items-start gap-2 rounded-xl bg-[var(--line)] px-3 py-2 text-xs">
+            {flag && <FlagIcon flag={flag} className="mt-px shrink-0" />}
+            {player.news}
+          </p>
+        )}
+
+        <dl className="mt-4 grid grid-cols-4 gap-2 text-center">
+          <Stat label="Price" value={formatPrice(player.price)} />
+          <Stat
+            label="Sells for"
+            value={purchase != null ? `≈${formatPrice(sellingPrice(purchase, player.price))}` : "–"}
+          />
+          <Stat label="Form" value={player.form.toFixed(1)} />
+          <Stat label="Owned" value={`${player.selectedBy.toFixed(1)}%`} />
+        </dl>
+
+        <h3 className="mt-5 mb-2 text-[10px] font-semibold tracking-[0.2em] text-muted uppercase">
+          Fixtures & projected points
+        </h3>
+        <ul className="flex flex-col gap-1.5">
+          {fixtures.map((g) => {
+            const metrics = fixtureMetrics(data, player.team, g);
+            const xp = xpFor(data, player, g);
+            return (
+              <li key={g} className="flex items-center gap-3 text-sm">
+                <span className="w-10 text-xs text-muted tabular-nums">GW{g}</span>
+                <span className="flex flex-1 gap-1">
+                  {metrics.length === 0 ? (
+                    <FdrPill difficulty={null} className="px-2">
+                      Blank
+                    </FdrPill>
+                  ) : (
+                    metrics.map((m, i) => (
+                      <FdrPill key={i} difficulty={m.difficulty} className="px-2">
+                        {m.label}
+                      </FdrPill>
+                    ))
+                  )}
+                </span>
+                <span className="w-12 text-right font-semibold tabular-nums">
+                  {xp == null ? "–" : xp.toFixed(1)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        {state && (
+          <div className="mt-5 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <PillButton
+                variant="neon"
+                className="justify-center"
+                disabled={!starter || state.captain === id}
+                onClick={() => {
+                  setCaptain(id);
+                  closeSheet();
+                }}
+              >
+                {state.captain === id ? "Captain" : "Make captain"}
+              </PillButton>
+              <PillButton
+                className="justify-center"
+                disabled={!starter || state.vice === id}
+                onClick={() => {
+                  setVice(id);
+                  closeSheet();
+                }}
+              >
+                {state.vice === id ? "Vice-captain" : "Make vice"}
+              </PillButton>
+            </div>
+            {!starter && state.slots.includes(id) && (
+              <p className="text-center text-xs text-muted">Bench players can’t wear the armband.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-[var(--line)] px-1 py-2">
+      <dt className="text-[10px] text-muted">{label}</dt>
+      <dd className="text-sm font-semibold tabular-nums">{value}</dd>
+    </div>
+  );
+}

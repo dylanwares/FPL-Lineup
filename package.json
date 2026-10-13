@@ -1,0 +1,45 @@
+{
+  "name": "fpl-lineup",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "predev": "tsx scripts/build-bootstrap.ts --if-missing",
+    "dev": "next dev",
+    "data": "tsx scripts/build-bootstrap.ts",
+    "prebuild": "tsx scripts/build-bootstrap.ts --if-missing",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "size": "tsx scripts/check-bundle.ts",
+    "lhci": "lhci autorun"
+  },
+  "dependencies": {
+    "idb": "^8.0.4",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@lhci/cli": "^0.15.1",
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "fake-indexeddb": "^6.2.5",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.3"
+  },
+  "packageManager": "pnpm@12.11.2"
+}
