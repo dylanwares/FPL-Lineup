@@ -113,3 +113,34 @@ test("player list filters and explains dimmed players", async ({ page, planner }
   await page.keyboard.press("Escape");
   await expect(list).toBeHidden();
 });
+
+test("the player sheet starts a one-off sub or transfer for that player", async ({ page, planner }) => {
+  void planner;
+  const n = await names(page);
+  const sub = page.getByRole("button", { name: "Sub", exact: true });
+  const transfer = page.getByRole("button", { name: "Transfer", exact: true });
+
+  // Substitute: the player is pre-selected, one tap swaps, then the mode switches off.
+  await token(page, n[12]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Substitute" }).click();
+  await expect(token(page, n[12])).toHaveAttribute("data-selected", "true");
+  await expect(page.getByRole("status").filter({ hasText: "swap with" })).toBeVisible();
+  await token(page, n[565]).click();
+  await expect(bench(page).locator(`[data-player="${n[12]}"]`)).toBeVisible();
+  await expect(sub).toHaveAttribute("aria-pressed", "false");
+
+  // Transfer: straight to the list; after buying, back to normal browsing.
+  await token(page, n[8]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Transfer" }).click();
+  const list = page.getByRole("dialog", { name: `Replace ${n[8]}` });
+  await list.locator("ul button").first().click();
+  await expect(page.getByRole("status").filter({ hasText: "Sold" })).toContainText(`Sold ${n[8]}`);
+  await expect(transfer).toHaveAttribute("aria-pressed", "false");
+
+  // Cancelling a one-off transfer also leaves the mode.
+  await token(page, n[277]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Transfer" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(transfer).toHaveAttribute("aria-pressed", "false");
+});

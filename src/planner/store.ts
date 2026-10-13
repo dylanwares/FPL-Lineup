@@ -39,6 +39,8 @@ export interface PlannerState {
   mode: Mode;
   /** Sub mode: the player picked first. Transfer mode: the player being sold (opens the player list). */
   selected: number | null;
+  /** The mode was started from a player's sheet for one move: it switches off after that move (or a cancel). */
+  oneShot: boolean;
   toasts: Toast[];
 }
 
@@ -56,6 +58,7 @@ export const usePlanner = create<PlannerState>(() => ({
   past: {},
   mode: "none",
   selected: null,
+  oneShot: false,
   toasts: [],
 }));
 
@@ -174,6 +177,7 @@ export function disconnect() {
     importError: null,
     mode: "none",
     selected: null,
+    oneShot: false,
   });
 }
 
@@ -184,7 +188,13 @@ export function setGw(gw: number) {
   const next = Math.min(last, Math.max(team.startedGw, gw));
   const past = next < team.planFromGw;
   // Past gameweeks are read-only, so modes switch off there.
-  set({ gw: next, sheetPlayer: null, selected: null, ...(past ? { mode: "none" as const } : {}) });
+  const leaveMode = past || get().oneShot;
+  set({
+    gw: next,
+    sheetPlayer: null,
+    selected: null,
+    ...(leaveMode ? { mode: "none" as const, oneShot: false } : {}),
+  });
   if (past) void loadPast(next);
 }
 
@@ -262,15 +272,30 @@ function restorePlan(plan: Plan) {
 
 /** Switches Sub or Transfer mode on (or off if it's already on). Only one mode at a time. */
 export function toggleMode(mode: Exclude<Mode, "none">) {
-  set({ mode: get().mode === mode ? "none" : mode, selected: null, sheetPlayer: null });
+  set({ mode: get().mode === mode ? "none" : mode, selected: null, sheetPlayer: null, oneShot: false });
 }
 
 export function exitMode() {
-  set({ mode: "none", selected: null });
+  set({ mode: "none", selected: null, oneShot: false });
 }
 
+/**
+ * Starts a sub or transfer for one player, from their sheet: the player is
+ * already picked, and the mode switches off again after the move.
+ */
+export function startMoveFor(player: number, mode: Exclude<Mode, "none">) {
+  set({ mode, selected: player, sheetPlayer: null, oneShot: true });
+  if (mode === "sub") {
+    showToast(`Tap a highlighted player to swap with ${playerName(player)}`, {
+      label: "Cancel",
+      run: clearSelection,
+    });
+  }
+}
+
+/** Ends the current pick. A one-off move from the sheet also leaves the mode. */
 export function clearSelection() {
-  set({ selected: null });
+  set(get().oneShot ? { selected: null, mode: "none", oneShot: false } : { selected: null });
 }
 
 function currentState() {
@@ -295,14 +320,15 @@ export function tapPlayer(id: number) {
   if (mode === "transfer") return set({ selected: selected === id ? null : id });
 
   if (selected === null) return set({ selected: id });
-  if (selected === id) return set({ selected: null });
+  if (selected === id) return clearSelection();
   const state = currentState();
   if (!state || !data) return;
   const ctx = engineContext(data);
   if (!canSwap(state.slots, selected, id, ctx.position, ctx.rules)) return set({ selected: id });
 
   applyMove({ type: "sub", a: selected, b: id });
-  set({ selected: null });
+  clearSelection();
+  set({ toasts: [] }); // the "tap a player to swap" prompt is done
   const after = currentState();
   if (after && after.captain !== state.captain)
     showToast(`Captain's armband passed to ${playerName(after.captain)}`);
@@ -316,7 +342,7 @@ export function buyPlayer(incoming: number) {
   if (!plan || selected === null) return;
   const before = plan;
   applyMove({ type: "transfer", out: selected, in: incoming });
-  set({ selected: null });
+  clearSelection();
   showToast(`Sold ${playerName(selected)}, bought ${playerName(incoming)}`, {
     label: "Undo",
     run: () => restorePlan(before),
