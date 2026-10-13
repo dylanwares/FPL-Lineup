@@ -7,12 +7,12 @@ import { PlayerToken, type PlayerTokenProps } from "@/components/pitch/PlayerTok
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { PillButton } from "@/components/ui/PillButton";
 import type { GameData } from "@/data/model";
-import { formationRows } from "@/engine/squad";
+import { canSwap, formationRows } from "@/engine/squad";
 import { STARTERS } from "@/engine/types";
 import { PlannerSkeleton } from "./PlannerSkeleton";
 import { useGwView } from "./hooks";
 import { engineContext, fixtureMetrics, playerFlag } from "./model";
-import { loadPast, openSheet, stepGw, usePlanner } from "./store";
+import { loadPast, stepGw, tapPlayer, usePlanner } from "./store";
 
 type Role = "C" | "V" | undefined;
 
@@ -36,11 +36,23 @@ function tokenProps(data: GameData, id: number, gw: number, role: Role): Omit<Pl
 }
 
 /** One player on the pitch. Memoised on primitives, so an edit re-renders only the slots it touches. */
-const PitchPlayer = memo(function PitchPlayer({ id, gw, role }: { id: number; gw: number; role: Role }) {
+const PitchPlayer = memo(function PitchPlayer({
+  id,
+  gw,
+  role,
+  selected,
+  dimmed,
+}: {
+  id: number;
+  gw: number;
+  role: Role;
+  selected: boolean;
+  dimmed: boolean;
+}) {
   const data = usePlanner((s) => s.data)!;
   const props = useMemo(() => tokenProps(data, id, gw, role), [data, id, gw, role]);
-  const onClick = useCallback(() => openSheet(id), [id]);
-  return <PlayerToken {...props} onClick={onClick} />;
+  const onClick = useCallback(() => tapPlayer(id), [id]);
+  return <PlayerToken {...props} selected={selected} dimmed={dimmed} onClick={onClick} />;
 });
 
 /** Horizontal swipe on the pitch changes gameweek; vertical scrolling is untouched. */
@@ -80,7 +92,17 @@ export function PitchView() {
   const view = useGwView();
   const data = usePlanner((s) => s.data);
   const gw = usePlanner((s) => s.gw);
+  const mode = usePlanner((s) => s.mode);
+  const selected = usePlanner((s) => s.selected);
   const swipe = useSwipe();
+  const planSlots = view.kind === "plan" ? view.state.slots : null;
+
+  // Sub mode: once a player is picked, only legal swap partners stay bright.
+  const targets = useMemo(() => {
+    if (mode !== "sub" || selected === null || !planSlots || !data) return null;
+    const ctx = engineContext(data);
+    return new Set(planSlots.filter((id) => canSwap(planSlots, selected, id, ctx.position, ctx.rules)));
+  }, [mode, selected, planSlots, data]);
 
   if (!data) return null;
   let squad: { slots: number[]; captain: number; vice: number } | null = null;
@@ -102,23 +124,25 @@ export function PitchView() {
   const { slots, captain, vice } = squad;
   const role = (id: number): Role => (id === captain ? "C" : id === vice ? "V" : undefined);
   const rows = formationRows(slots, engineContext(data).position);
+  const player = (id: number, withRole: boolean) => (
+    <PitchPlayer
+      key={id}
+      id={id}
+      gw={gw}
+      role={withRole ? role(id) : undefined}
+      selected={selected === id}
+      dimmed={targets !== null && id !== selected && !targets.has(id)}
+    />
+  );
 
   return (
     <div className="flex touch-pan-y flex-col gap-3" {...swipe}>
-      <Pitch>
+      <Pitch active={mode !== "none" && view.kind === "plan"}>
         {rows.map((row, i) => (
-          <PitchRow key={i}>
-            {row.map((id) => (
-              <PitchPlayer key={id} id={id} gw={gw} role={role(id)} />
-            ))}
-          </PitchRow>
+          <PitchRow key={i}>{row.map((id) => player(id, true))}</PitchRow>
         ))}
       </Pitch>
-      <Bench>
-        {slots.slice(STARTERS).map((id) => (
-          <PitchPlayer key={id} id={id} gw={gw} role={undefined} />
-        ))}
-      </Bench>
+      <Bench>{slots.slice(STARTERS).map((id) => player(id, false))}</Bench>
     </div>
   );
 }

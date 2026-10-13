@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Unbounded } from "next/font/google";
 import { Header } from "@/components/Header";
 import { themeScript } from "@/components/ThemeToggle";
-import { WebVitalsLazy } from "@/components/WebVitalsLazy";
+import { WebVitals } from "@/components/WebVitals";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-full flex-col">
-        <WebVitalsLazy />
+        <WebVitals />
         <Header />
         <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4">{children}</main>
         <footer className="mx-auto w-full max-w-lg px-4 py-8 text-center text-[11px] leading-relaxed text-muted">

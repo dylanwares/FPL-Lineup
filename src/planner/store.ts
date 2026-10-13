@@ -2,15 +2,23 @@ import { create } from "zustand";
 import { readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
-import { addMove } from "@/engine/plan";
+import { addMove, resetGw, stateAt } from "@/engine/plan";
+import { canSwap } from "@/engine/squad";
 import type { Move, Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
-import { newPlan, rebasePlan } from "./model";
+import { engineContext, newPlan, planResult, rebasePlan } from "./model";
 
 const ENTRY_KEY = "fpl-lineup:entry";
 
 export type Phase = "booting" | "connect" | "importing" | "ready";
 export type PastState = PastPicks | "loading" | "error";
+export type Mode = "none" | "sub" | "transfer";
+
+export interface Toast {
+  id: number;
+  message: string;
+  action?: { label: string; run: () => void };
+}
 
 export interface PlannerState {
   phase: Phase;
@@ -27,6 +35,11 @@ export interface PlannerState {
   refreshError: string | null;
   refreshing: boolean;
   past: Record<number, PastState>;
+  /** Sub or Transfer mode; stays on after each move. */
+  mode: Mode;
+  /** Sub mode: the player picked first. Transfer mode: the player being sold (opens the player list). */
+  selected: number | null;
+  toasts: Toast[];
 }
 
 export const usePlanner = create<PlannerState>(() => ({
@@ -41,6 +54,9 @@ export const usePlanner = create<PlannerState>(() => ({
   refreshError: null,
   refreshing: false,
   past: {},
+  mode: "none",
+  selected: null,
+  toasts: [],
 }));
 
 const set = usePlanner.setState;
@@ -149,7 +165,16 @@ export async function refreshTeam() {
 /** Forgets the team on this device (its plans stay saved for next time). */
 export function disconnect() {
   rememberEntryId(null);
-  set({ phase: "connect", team: null, plan: null, past: {}, sheetPlayer: null, importError: null });
+  set({
+    phase: "connect",
+    team: null,
+    plan: null,
+    past: {},
+    sheetPlayer: null,
+    importError: null,
+    mode: "none",
+    selected: null,
+  });
 }
 
 export function setGw(gw: number) {
@@ -157,8 +182,10 @@ export function setGw(gw: number) {
   if (!team || !data) return;
   const last = data.events.length;
   const next = Math.min(last, Math.max(team.startedGw, gw));
-  set({ gw: next, sheetPlayer: null });
-  if (next < team.planFromGw) void loadPast(next);
+  const past = next < team.planFromGw;
+  // Past gameweeks are read-only, so modes switch off there.
+  set({ gw: next, sheetPlayer: null, selected: null, ...(past ? { mode: "none" as const } : {}) });
+  if (past) void loadPast(next);
 }
 
 export function stepGw(delta: number) {
@@ -210,4 +237,99 @@ export function setCaptain(player: number) {
 
 export function setVice(player: number) {
   applyMove({ type: "vice", player });
+}
+
+/* ---------------- Sub & transfer modes ---------------- */
+
+let toastId = 0;
+
+export function showToast(message: string, action?: Toast["action"]) {
+  const toast = { id: ++toastId, message, action };
+  // One toast at a time keeps the screen calm; a new move replaces the last message.
+  set({ toasts: [toast] });
+  return toast.id;
+}
+
+export function dismissToast(id: number) {
+  set({ toasts: get().toasts.filter((t) => t.id !== id) });
+}
+
+/** Replaces the plan wholesale (Undo restores the plan as it was before a move). */
+function restorePlan(plan: Plan) {
+  set({ plan, selected: null });
+  persistPlan(plan);
+}
+
+/** Switches Sub or Transfer mode on (or off if it's already on). Only one mode at a time. */
+export function toggleMode(mode: Exclude<Mode, "none">) {
+  set({ mode: get().mode === mode ? "none" : mode, selected: null, sheetPlayer: null });
+}
+
+export function exitMode() {
+  set({ mode: "none", selected: null });
+}
+
+export function clearSelection() {
+  set({ selected: null });
+}
+
+function currentState() {
+  const { plan, data, gw } = get();
+  if (!plan || !data) return null;
+  return stateAt(planResult(plan, data), gw) ?? null;
+}
+
+function playerName(id: number) {
+  return get().data?.playerById.get(id)?.name ?? "player";
+}
+
+/**
+ * A tap on a pitch or bench player. Outside the modes it opens the player
+ * sheet; in Sub mode the first tap selects and the second swaps (or cancels);
+ * in Transfer mode it picks the player to sell, which opens the player list.
+ */
+export function tapPlayer(id: number) {
+  const { mode, selected, data, team, gw } = get();
+  const readOnly = !team || gw < team.planFromGw;
+  if (mode === "none" || readOnly) return openSheet(id);
+  if (mode === "transfer") return set({ selected: selected === id ? null : id });
+
+  if (selected === null) return set({ selected: id });
+  if (selected === id) return set({ selected: null });
+  const state = currentState();
+  if (!state || !data) return;
+  const ctx = engineContext(data);
+  if (!canSwap(state.slots, selected, id, ctx.position, ctx.rules)) return set({ selected: id });
+
+  applyMove({ type: "sub", a: selected, b: id });
+  set({ selected: null });
+  const after = currentState();
+  if (after && after.captain !== state.captain)
+    showToast(`Captain's armband passed to ${playerName(after.captain)}`);
+  else if (after && after.vice !== state.vice)
+    showToast(`Vice-captaincy passed to ${playerName(after.vice)}`);
+}
+
+/** Transfer mode: buys `incoming` for the selected player, keeping the slot. */
+export function buyPlayer(incoming: number) {
+  const { plan, selected } = get();
+  if (!plan || selected === null) return;
+  const before = plan;
+  applyMove({ type: "transfer", out: selected, in: incoming });
+  set({ selected: null });
+  showToast(`Sold ${playerName(selected)}, bought ${playerName(incoming)}`, {
+    label: "Undo",
+    run: () => restorePlan(before),
+  });
+}
+
+/** Clears every move in the gameweek on screen, with Undo. */
+export function resetCurrentGw() {
+  const { plan, gw } = get();
+  if (!plan || !plan.moves.some((m) => m.gw === gw)) return;
+  const before = plan;
+  const next = resetGw(plan, gw);
+  set({ plan: next, selected: null });
+  persistPlan(next);
+  showToast(`GW${gw} reset`, { label: "Undo", run: () => restorePlan(before) });
 }

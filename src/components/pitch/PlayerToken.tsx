@@ -41,6 +41,10 @@ export function PlayerToken({
   return (
     <Tag
       {...(onClick ? { type: "button" as const, onClick } : {})}
+      data-player={name}
+      data-selected={selected || undefined}
+      data-dimmed={dimmed || undefined}
+      aria-pressed={onClick && selected !== undefined ? selected : undefined}
       className={`relative flex w-[68px] flex-col items-center transition duration-150 select-none sm:w-[76px] ${
         selected ? "-translate-y-1.5" : ""
       } ${dimmed || blank ? "opacity-40" : ""} ${blank ? "grayscale" : ""}`}

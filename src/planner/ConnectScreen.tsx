@@ -80,8 +80,7 @@ export function ConnectScreen() {
             >
               fantasy.premierleague.com
             </a>{" "}
-            and open the{" "}
-            <span className="text-fg">Points</span> tab. Your ID is the number after{" "}
+            and open the <span className="text-fg">Points</span> tab. Your ID is the number after{" "}
             <span className="text-fg">/entry/</span> in the address bar, for example …/entry/
             <span className="font-semibold text-mint">1234567</span>/event/6.
           </p>
