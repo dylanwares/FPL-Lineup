@@ -79,7 +79,7 @@ const PitchPlayer = memo(function PitchPlayer({
   );
 });
 
-const HOLD_MS = 220; // press this long to pick a player up
+const HOLD_MS = 150; // press this long to pick a player up
 const MOVE_TOLERANCE = 8; // px of movement that turns a press into a scroll or swipe
 const GHOST_LIFT = 40; // px the dragged copy floats above the finger
 
@@ -299,7 +299,17 @@ export function PitchView() {
 
   return (
     <div className="flex touch-pan-y flex-col gap-3" {...gestures}>
-      <Pitch active={(mode !== "none" || dragFrom !== null) && view.kind === "plan"}>
+      <Pitch
+        mode={
+          view.kind !== "plan"
+            ? null
+            : mode === "transfer"
+              ? "transfer"
+              : mode === "sub" || dragFrom !== null // a drag is a sub too
+                ? "sub"
+                : null
+        }
+      >
         {rows.map((row, i) => (
           <PitchRow key={i}>{row.map((id) => player(id, true))}</PitchRow>
         ))}
