@@ -144,3 +144,44 @@ test("the player sheet starts a one-off sub or transfer for that player", async 
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(transfer).toHaveAttribute("aria-pressed", "false");
 });
+
+test("press, hold and drag a player onto another to sub them", async ({ page, planner }) => {
+  void planner;
+  await page.setViewportSize({ width: 412, height: 1100 }); // pitch and bench both on screen
+  const n = await names(page);
+  const centre = async (name: string) => {
+    const box = (await token(page, name).boundingBox())!;
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  /** Holds `from`, drags it over `to`, and returns a function that releases. */
+  const dragOnto = async (from: string, to: string) => {
+    const a = await centre(from);
+    const b = await centre(to);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.waitForTimeout(350); // hold to pick up
+    await page.mouse.move(b.x, b.y, { steps: 12 });
+    return () => page.mouse.up();
+  };
+
+  // A quick tap still opens the player sheet.
+  await token(page, n[8]).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+
+  // Dropping on an illegal partner (the goalkeeper onto a midfielder) changes nothing.
+  let release = await dragOnto(n[82], n[124]);
+  await expect(token(page, n[124])).toHaveAttribute("data-dimmed", "true");
+  await release();
+  await expect(bench(page).locator(`[data-player="${n[82]}"]`)).toHaveCount(0);
+
+  // The captain (a midfielder) onto the bench midfielder: legal targets stay bright, the drop swaps them.
+  release = await dragOnto(n[12], n[565]);
+  await expect(token(page, n[82])).toHaveAttribute("data-dimmed", "true");
+  await expect(token(page, n[565])).not.toHaveAttribute("data-dimmed");
+  await release();
+  await expect(bench(page).locator(`[data-player="${n[12]}"]`)).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "armband" })).toContainText(n[565]);
+  await expect(page.getByRole("dialog")).toBeHidden(); // releasing didn't also tap the player
+});

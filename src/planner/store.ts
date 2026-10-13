@@ -41,6 +41,9 @@ export interface PlannerState {
   selected: number | null;
   /** The mode was started from a player's sheet for one move: it switches off after that move (or a cancel). */
   oneShot: boolean;
+  /** Press-and-hold drag: the player being dragged, and the player under the finger. */
+  dragFrom: number | null;
+  dragOver: number | null;
   toasts: Toast[];
 }
 
@@ -59,6 +62,8 @@ export const usePlanner = create<PlannerState>(() => ({
   mode: "none",
   selected: null,
   oneShot: false,
+  dragFrom: null,
+  dragOver: null,
   toasts: [],
 }));
 
@@ -321,19 +326,56 @@ export function tapPlayer(id: number) {
 
   if (selected === null) return set({ selected: id });
   if (selected === id) return clearSelection();
-  const state = currentState();
-  if (!state || !data) return;
-  const ctx = engineContext(data);
-  if (!canSwap(state.slots, selected, id, ctx.position, ctx.rules)) return set({ selected: id });
-
-  applyMove({ type: "sub", a: selected, b: id });
+  if (!data || !swapPlayers(selected, id)) return set({ selected: id });
   clearSelection();
-  set({ toasts: [] }); // the "tap a player to swap" prompt is done
+}
+
+/**
+ * Swaps two squad players in the gameweek on screen if that's a legal sub.
+ * Reports armband handovers. Returns false (and changes nothing) otherwise.
+ */
+function swapPlayers(a: number, b: number): boolean {
+  const { data } = get();
+  const state = currentState();
+  if (!state || !data) return false;
+  const ctx = engineContext(data);
+  if (!canSwap(state.slots, a, b, ctx.position, ctx.rules)) return false;
+
+  applyMove({ type: "sub", a, b });
+  set({ toasts: [] }); // any "tap a player to swap" prompt is done
   const after = currentState();
   if (after && after.captain !== state.captain)
     showToast(`Captain's armband passed to ${playerName(after.captain)}`);
   else if (after && after.vice !== state.vice)
     showToast(`Vice-captaincy passed to ${playerName(after.vice)}`);
+  return true;
+}
+
+/* ---------------- Press-and-hold drag to sub ---------------- */
+
+/** Whether players in the gameweek on screen can be dragged (planned gameweeks, outside Transfer mode). */
+export function canDrag(): boolean {
+  const { team, gw, mode } = get();
+  return !!team && gw >= team.planFromGw && mode !== "transfer";
+}
+
+export function startDrag(id: number) {
+  set({ dragFrom: id, dragOver: null, selected: null, sheetPlayer: null });
+}
+
+export function setDragOver(id: number | null) {
+  if (get().dragOver !== id) set({ dragOver: id });
+}
+
+/** Drops on the player under the finger: subs them if legal, otherwise nothing changes. */
+export function endDrag() {
+  const { dragFrom, dragOver } = get();
+  set({ dragFrom: null, dragOver: null });
+  if (dragFrom !== null && dragOver !== null && dragOver !== dragFrom) swapPlayers(dragFrom, dragOver);
+}
+
+export function cancelDrag() {
+  set({ dragFrom: null, dragOver: null });
 }
 
 /** Transfer mode: buys `incoming` for the selected player, keeping the slot. */

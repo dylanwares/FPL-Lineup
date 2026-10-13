@@ -21,6 +21,12 @@ export interface PlayerTokenProps {
   selected?: boolean;
   /** Sub mode: not a legal swap target. */
   dimmed?: boolean;
+  /** Being dragged: this is the faded spot it was lifted from. */
+  lifted?: boolean;
+  /** A drag is hovering over this player, a legal place to drop. */
+  targeted?: boolean;
+  /** FPL player id, exposed as data-id for drag hit-testing. */
+  playerId?: number;
   onClick?: () => void;
 }
 
@@ -34,6 +40,9 @@ export function PlayerToken({
   flag,
   selected,
   dimmed,
+  lifted,
+  targeted,
+  playerId,
   onClick,
 }: PlayerTokenProps) {
   const blank = metrics.length === 0;
@@ -42,12 +51,14 @@ export function PlayerToken({
     <Tag
       {...(onClick ? { type: "button" as const, onClick } : {})}
       data-player={name}
+      data-id={playerId}
       data-selected={selected || undefined}
       data-dimmed={dimmed || undefined}
       aria-pressed={onClick && selected !== undefined ? selected : undefined}
-      className={`relative flex w-[68px] flex-col items-center transition duration-150 select-none sm:w-[76px] ${
+      onContextMenu={onClick ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+      className={`relative flex w-[68px] flex-col items-center transition duration-150 select-none [-webkit-touch-callout:none] sm:w-[76px] ${
         selected ? "-translate-y-1.5" : ""
-      } ${dimmed || blank ? "opacity-40" : ""} ${blank ? "grayscale" : ""}`}
+      } ${targeted ? "scale-110" : ""} ${lifted ? "opacity-25" : dimmed || blank ? "opacity-40" : ""} ${blank ? "grayscale" : ""}`}
     >
       <div className="relative">
         {/* contact shadow */}
@@ -63,7 +74,7 @@ export function PlayerToken({
       <span
         className={`relative -mt-0.5 w-full truncate rounded-t-md px-1 text-center text-[11px] leading-[18px] font-semibold ${
           flag ? "bg-doubt text-[#1a1200]" : "bg-[rgb(8_5_16/0.82)] text-white"
-        } ${selected ? "ring-2 ring-mint" : "ring-1 ring-white/10"}`}
+        } ${targeted ? "ring-2 ring-cyan" : selected ? "ring-2 ring-mint" : "ring-1 ring-white/10"}`}
       >
         {name}
       </span>
