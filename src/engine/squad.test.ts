@@ -66,6 +66,14 @@ describe("chipAvailability", () => {
     expect(chipAvailability("3xc", 1, [], rules)).toBe("available");
   });
 
+  it("blocks back-to-back Free Hits (official example: GW19 then not until GW21)", () => {
+    const used = [{ name: "freehit" as const, gw: 19 }];
+    expect(chipAvailability("freehit", 20, used, rules)).toBe("unavailable");
+    expect(chipAvailability("freehit", 21, used, rules)).toBe("available");
+    // Other chips aren't affected.
+    expect(chipAvailability("wildcard", 20, used, rules)).toBe("available");
+  });
+
   it("uses up one copy per half", () => {
     const used = [{ name: "bboost" as const, gw: 4 }];
     expect(chipAvailability("bboost", 10, used, rules)).toBe("used");

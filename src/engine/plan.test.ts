@@ -127,7 +127,7 @@ describe("chips", () => {
       ),
     );
     expect(stateAt(r, 7)!).toMatchObject({ chip: "wildcard", transfers: 2, cost: 0 });
-    expect(stateAt(r, 8)!.freeTransfers).toBe(3);
+    expect(stateAt(r, 8)!.freeTransfers).toBe(2); // the 2 saved are kept, no extra one
     expect(stateAt(r, 8)!.slots).toContain(18); // wildcard changes stick
   });
 
@@ -145,7 +145,40 @@ describe("chips", () => {
     expect(gw8.slots).toEqual(testSnapshot().slots);
     expect(gw8.captain).toBe(13);
     expect(gw8.bank).toBe(10);
-    expect(gw8.freeTransfers).toBe(2);
+    expect(gw8.freeTransfers).toBe(1); // the 1 saved is kept, no extra one
+  });
+
+  it("flags more than 20 transfers in a gameweek, except on a Wildcard or Free Hit", () => {
+    const strict = { ...ctx, rules: { ...ctx.rules, transfers: { ...ctx.rules.transfers, maxPerGw: 1 } } };
+    const moves: Move[] = [
+      { type: "transfer", gw: 7, out: 3, in: 18 },
+      { type: "transfer", gw: 7, out: 13, in: 25 },
+    ];
+    expect(stateAt(computePlan(withMoves(moves), strict), 7)!.warnings).toContainEqual({
+      kind: "transfer-limit",
+      count: 2,
+      max: 1,
+    });
+    const wildcard = withMoves([{ type: "chip", gw: 7, chip: "wildcard" }, ...moves]);
+    expect(stateAt(computePlan(wildcard, strict), 7)!.warnings).not.toContainEqual(
+      expect.objectContaining({ kind: "transfer-limit" }),
+    );
+  });
+
+  it("won't play a Free Hit in consecutive gameweeks", () => {
+    const base = testSnapshot({ gw: 19 });
+    const r = run(
+      withMoves(
+        [
+          { type: "chip", gw: 19, chip: "freehit" },
+          { type: "chip", gw: 20, chip: "freehit" },
+        ],
+        base,
+      ),
+    );
+    expect(stateAt(r, 19)!.chip).toBe("freehit");
+    expect(stateAt(r, 20)!.chip).toBeNull();
+    expect(stateAt(r, 20)!.warnings[0]).toMatchObject({ kind: "invalid-move" });
   });
 
   it("rejects a chip that has been used in this half", () => {

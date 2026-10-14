@@ -13,7 +13,7 @@ const bench = (page: Page) => page.getByRole("region", { name: "Bench" });
 
 test("imports a team and switches gameweeks without network requests", async ({ page, planner }) => {
   await expect(gwNumber(page)).toHaveText(String(planner.nextGw));
-  await expect(stats(page)).toContainText("0/5");
+  await expect(stats(page)).toContainText("0/3");
 
   const requests: string[] = [];
   page.on("request", (r) => {
@@ -70,7 +70,7 @@ test("transfer mode: sell, buy, undo and reset", async ({ page, planner }) => {
     `Sold ${n[8]}, bought ${bought}`,
   );
   await expect(token(page, bought)).toBeVisible();
-  await expect(stats(page)).toContainText("1/5");
+  await expect(stats(page)).toContainText("1/3");
   await expect(transfer).toHaveAttribute("aria-pressed", "true");
 
   // The change carries forward to later gameweeks.
@@ -80,14 +80,14 @@ test("transfer mode: sell, buy, undo and reset", async ({ page, planner }) => {
 
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(token(page, n[8])).toBeVisible();
-  await expect(stats(page)).toContainText("0/5");
+  await expect(stats(page)).toContainText("0/3");
 
   // Make it again, then Reset the gameweek.
   await token(page, n[8]).click();
   await list.locator("ul button").first().click();
-  await expect(stats(page)).toContainText("1/5");
+  await expect(stats(page)).toContainText("1/3");
   await page.getByRole("button", { name: `Reset GW${planner.nextGw}` }).click();
-  await expect(stats(page)).toContainText("0/5");
+  await expect(stats(page)).toContainText("0/3");
   await expect(token(page, n[8])).toBeVisible();
 });
 

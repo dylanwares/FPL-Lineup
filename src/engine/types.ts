@@ -46,6 +46,7 @@ export interface Plan {
 export type Warning =
   | { kind: "over-budget"; amount: number }
   | { kind: "club-limit"; team: number; count: number }
+  | { kind: "transfer-limit"; count: number; max: number }
   | { kind: "invalid-move"; move: Move; reason: string };
 
 /** The computed state of one planned gameweek. */

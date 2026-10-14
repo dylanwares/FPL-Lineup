@@ -14,6 +14,8 @@ const port = 3200;
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
+  // Dev servers compile on first request, so allow longer locally.
+  timeout: process.env.CI ? 30_000 : 60_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {

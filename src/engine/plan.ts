@@ -1,5 +1,5 @@
 import { chipAvailability } from "./chips";
-import { nextFreeTransfers, sellingPrice, transferCost } from "./money";
+import { FREE_TRANSFER_CHIPS, nextFreeTransfers, sellingPrice, transferCost } from "./money";
 import { canSwap, clubCounts, isStarter } from "./squad";
 import type { ChipUse, EngineContext, GwState, Move, Plan, Slots, Warning } from "./types";
 import { STARTERS } from "./types";
@@ -122,6 +122,9 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
   const chipsUsed = chip ? [...start.chipsUsed, { name: chip, gw }] : start.chipsUsed;
 
   if (bank < 0) warnings.push({ kind: "over-budget", amount: -bank });
+  if (!FREE_TRANSFER_CHIPS.has(chip) && transfers > rules.transfers.maxPerGw) {
+    warnings.push({ kind: "transfer-limit", count: transfers, max: rules.transfers.maxPerGw });
+  }
   for (const [team, count] of clubCounts(slots, ctx.team)) {
     if (count > rules.squad.maxPerClub) warnings.push({ kind: "club-limit", team, count });
   }

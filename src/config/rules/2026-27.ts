@@ -5,7 +5,10 @@ const SECOND_HALF = { start: 20, stop: 38 };
 // Wildcard and Free Hit can't be played in GW1 (no transfers to make yet).
 const FIRST_HALF_TRANSFER = { start: 2, stop: 19 };
 
-/** 2026/27 rules — unchanged from 2025/26. */
+/**
+ * 2026/27 rules — unchanged from 2025/26. Checked against the official rules
+ * page (fantasy.premierleague.com/help/rules, 14 Oct 2026).
+ */
 export const rules2026_27: SeasonRules = {
   season: "2026-27",
   firstGw: 1,
@@ -27,6 +30,7 @@ export const rules2026_27: SeasonRules = {
     maxBanked: 5,
     hitCost: 4,
     overrides: [],
+    maxPerGw: 20,
   },
   chips: [
     { name: "wildcard", window: FIRST_HALF_TRANSFER },
@@ -39,5 +43,6 @@ export const rules2026_27: SeasonRules = {
     { name: "3xc", window: SECOND_HALF },
   ],
   maxChipsPerGw: 1,
+  noConsecutive: ["freehit"],
   captainMultiplier: { normal: 2, triple: 3 },
 };
