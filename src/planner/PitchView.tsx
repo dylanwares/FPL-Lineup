@@ -10,6 +10,7 @@ import type { GameData } from "@/data/model";
 import { canSwap, formationRows } from "@/engine/squad";
 import { STARTERS } from "@/engine/types";
 import { PlannerSkeleton } from "./PlannerSkeleton";
+import { ProjectedPoints } from "./ProjectedPoints";
 import { useGwView } from "./hooks";
 import { metricPills, photoUrl, type Metric } from "./metrics";
 import { engineContext, playerFlag } from "./model";
@@ -330,6 +331,7 @@ export function PitchView() {
                 ? "sub"
                 : null
         }
+        corner={view.kind === "plan" ? <ProjectedPoints state={view.state} /> : undefined}
       >
         {rows.map((row, i) => (
           <PitchRow key={i}>{row.map((id) => player(id, true))}</PitchRow>

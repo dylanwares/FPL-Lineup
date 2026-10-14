@@ -118,7 +118,8 @@ function PlayerPhoto({
   className: string;
 }) {
   const [failed, setFailed] = useState(false);
-  if (failed) return <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-11 sm:size-12 ${className}`} />;
+  if (failed)
+    return <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-11 sm:size-12 ${className}`} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element -- tiny remote PNGs; the image optimiser would add a server hop
     <img

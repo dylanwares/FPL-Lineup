@@ -429,8 +429,24 @@ test("metric dropdown changes every pill and is remembered; photos fall back to 
   });
   await page.getByRole("button", { name: "Photos" }).click();
   await expect(page.getByRole("button", { name: "Photos" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".photo-slot")).toHaveCount(15);
-  await expect(page.locator(".photo-slot[data-failed]")).toHaveCount(14);
-  await expect(page.locator(".photo-slot[data-failed] .photo-fallback").first()).toBeVisible();
-  await expect(page.locator(".photo-slot img").first()).toHaveAttribute("src", /premierleague25.*\.png$/);
+  // The 14 that fail are swapped for their kits, leaving the one photo that loaded.
+  const photos = page.locator("[data-player] img");
+  await expect(photos).toHaveCount(1);
+  await expect(photos).toHaveAttribute("src", /premierleague25.*\.png$/);
+  await expect(photos).toBeVisible();
+});
+
+test("expected points on the pitch apply the armband and Triple Captain", async ({ page, planner }) => {
+  test.skip(planner.nextGw > 19, "needs the first-half Triple Captain");
+  const n = await names(page);
+  const badge = page.getByTestId("projected-points");
+  const total = badge.getByTestId("projected-total");
+  await expect(badge).toContainText("expected points");
+  await expect(total).toHaveText(/^\d+\.\d$/);
+  await expect(badge).toHaveAttribute("aria-label", new RegExp(`Captain ${n[12]} ×2`));
+  const before = Number(await total.textContent());
+
+  await page.locator('[data-chip="3xc"]').click();
+  await expect(badge).toHaveAttribute("aria-label", new RegExp(`Captain ${n[12]} ×3`));
+  await expect.poll(async () => Number(await total.textContent())).toBeGreaterThan(before);
 });
