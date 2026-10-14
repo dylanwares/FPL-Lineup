@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { ChipsRow } from "./ChipsRow";
 import { GwNav } from "./GwNav";
+import { MetricRow } from "./MetricRow";
 import { playerList, playerSheet, preloadOnIdle } from "./lazy-parts";
 import { ModeBar } from "./ModeBar";
 import { PitchView } from "./PitchView";
@@ -36,6 +37,7 @@ export function PlannerScreen() {
     <div className="flex flex-col gap-3 py-4">
       <PlanBar />
       <GwNav />
+      <MetricRow />
       <StatsRow />
       <ChipsRow />
       <PitchView />

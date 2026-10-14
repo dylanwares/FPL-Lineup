@@ -9,6 +9,7 @@ import { compactPlanGw } from "@/engine/compact";
 import { canSwap } from "@/engine/squad";
 import type { Move, Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
+import { DEFAULT_METRIC, isMetric, type Metric } from "./metrics";
 import {
   CHIP_NAMES,
   copyPlan,
@@ -21,6 +22,8 @@ import {
 } from "./model";
 
 const ENTRY_KEY = "fpl-lineup:entry";
+const METRIC_KEY = "fpl-lineup:metric";
+const PHOTOS_KEY = "fpl-lineup:photos";
 const planKey = (entryId: number) => `fpl-lineup:plan:${entryId}`;
 
 export type Phase = "booting" | "connect" | "importing" | "ready";
@@ -45,6 +48,10 @@ export interface PlannerState {
   /** Every plan for this team, in creation order (includes `plan`). */
   plans: Plan[];
   planUi: PlanUi;
+  /** The pill under each player. */
+  metric: Metric;
+  /** Player photos instead of shirts. */
+  photos: boolean;
   /** The gameweek on screen. */
   gw: number;
   /** Player whose sheet is open. */
@@ -74,6 +81,8 @@ export const usePlanner = create<PlannerState>(() => ({
   plan: null,
   plans: [],
   planUi: null,
+  metric: DEFAULT_METRIC,
+  photos: false,
   gw: 1,
   sheetPlayer: null,
   importError: null,
@@ -173,6 +182,7 @@ function isStale(team: TeamImport, data: GameData): boolean {
 
 /** Loads game data, then the remembered team and plan from the device. No network if both are cached. */
 export async function boot() {
+  loadViewPrefs();
   try {
     const { data } = await loadGameData({ onUpdate: (fresh) => set({ data: fresh.data }) });
     set({ data, dataError: null });
@@ -616,4 +626,37 @@ export async function refreshTeamFromMenu() {
   set({ planUi: null });
   await refreshTeam();
   if (!get().refreshError) showToast("Team refreshed from FPL");
+}
+
+/* ---------------- Metric and photos ---------------- */
+
+/** The metric and Shirts/Photos choice from last time on this device. */
+function loadViewPrefs() {
+  try {
+    const metric = localStorage.getItem(METRIC_KEY);
+    set({
+      metric: isMetric(metric) ? metric : DEFAULT_METRIC,
+      photos: localStorage.getItem(PHOTOS_KEY) === "1",
+    });
+  } catch {
+    // Storage blocked: defaults.
+  }
+}
+
+function remember(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage blocked: the choice lasts for this visit only.
+  }
+}
+
+export function setMetric(metric: Metric) {
+  set({ metric });
+  remember(METRIC_KEY, metric);
+}
+
+export function setPhotos(photos: boolean) {
+  set({ photos });
+  remember(PHOTOS_KEY, photos ? "1" : "0");
 }

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { Kit as KitColours } from "@/config/kits";
 import { Kit } from "../Kit";
 import { CaptainBadge, FlagIcon } from "../ui/Badges";
@@ -15,6 +18,10 @@ export interface PlayerTokenProps {
   goalkeeper?: boolean;
   /** One entry normally, two in a double gameweek, none in a blank (greyed, dash). */
   metrics: TokenMetric[];
+  /** No fixture this gameweek: greyed out. Defaults to having no metrics. */
+  blank?: boolean;
+  /** Photo view: the player's photo in place of the kit (the kit shows if it fails to load). */
+  photo?: string;
   captain?: "C" | "V";
   flag?: "doubt" | "injured";
   /** Sub/transfer mode: lifted with a neon ring. */
@@ -36,6 +43,8 @@ export function PlayerToken({
   kit,
   goalkeeper,
   metrics,
+  blank = metrics.length === 0,
+  photo,
   captain,
   flag,
   selected,
@@ -45,8 +54,8 @@ export function PlayerToken({
   playerId,
   onClick,
 }: PlayerTokenProps) {
-  const blank = metrics.length === 0;
   const Tag = onClick ? "button" : "div";
+  const glow = selected ? "drop-shadow-[0_0_6px_rgb(46_230_166/0.5)]" : "";
   return (
     <Tag
       {...(onClick ? { type: "button" as const, onClick } : {})}
@@ -63,11 +72,12 @@ export function PlayerToken({
       <div className="relative">
         {/* contact shadow */}
         <span className="absolute bottom-0 left-1/2 h-2.5 w-11 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(0_0_0/0.65),transparent)]" />
-        <Kit
-          kit={kit}
-          goalkeeper={goalkeeper}
-          className={`relative size-11 sm:size-12 ${selected ? "drop-shadow-[0_0_6px_rgb(46_230_166/0.5)]" : ""}`}
-        />
+        {photo ? (
+          // Keyed by URL so a failed photo's fallback doesn't stick to the next player in this slot.
+          <PlayerPhoto key={photo} src={photo} kit={kit} goalkeeper={goalkeeper} className={glow} />
+        ) : (
+          <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-11 sm:size-12 ${glow}`} />
+        )}
         {captain && <CaptainBadge role={captain} className="absolute top-0 -left-2.5" />}
         {flag && <FlagIcon flag={flag} className="absolute top-0.5 -right-2.5" />}
       </div>
@@ -79,7 +89,7 @@ export function PlayerToken({
         {name}
       </span>
       <span className="flex w-full overflow-hidden rounded-b-md">
-        {blank ? (
+        {metrics.length === 0 ? (
           <FdrPill difficulty={null} className="w-full rounded-none">
             —
           </FdrPill>
@@ -92,5 +102,35 @@ export function PlayerToken({
         )}
       </span>
     </Tag>
+  );
+}
+
+/** The player's photo alone; the kit is only rendered (in its place) if the photo fails to load. */
+function PlayerPhoto({
+  src,
+  kit,
+  goalkeeper,
+  className,
+}: {
+  src: string;
+  kit: KitColours;
+  goalkeeper?: boolean;
+  className: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-11 sm:size-12 ${className}`} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- tiny remote PNGs; the image optimiser would add a server hop
+    <img
+      src={src}
+      alt=""
+      width={77}
+      height={80}
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      className={`relative block size-11 object-contain object-bottom sm:size-12 ${className}`}
+      onError={() => setFailed(true)}
+    />
   );
 }

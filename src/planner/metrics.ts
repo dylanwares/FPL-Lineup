@@ -1,0 +1,105 @@
+import type { TokenMetric } from "@/components/pitch/PlayerToken";
+import { fixturesFor, xpFor, type GameData, type Player } from "@/data/model";
+import { fixtureMetrics, formatPrice } from "./model";
+
+/** What the pill under each player shows. */
+export type Metric = "fixture" | "xp" | "xp3" | "xp5" | "form" | "price" | "selected" | "points";
+
+export const METRICS: { key: Metric; label: string }[] = [
+  { key: "fixture", label: "Next fixture" },
+  { key: "xp", label: "Projected points" },
+  { key: "xp3", label: "Projected points, next 3" },
+  { key: "xp5", label: "Projected points, next 5" },
+  { key: "form", label: "Form" },
+  { key: "price", label: "Price" },
+  { key: "selected", label: "Selected by %" },
+  { key: "points", label: "Total points" },
+];
+
+export const DEFAULT_METRIC: Metric = "fixture";
+
+export function isMetric(value: unknown): value is Metric {
+  return METRICS.some((m) => m.key === value);
+}
+
+/**
+ * Colour tier for a points-per-gameweek rate, on the FDR colour scale so
+ * green reads as good and red as poor: 1 (great) … 5 (poor).
+ */
+export function rateTier(perGw: number): number {
+  if (perGw >= 6) return 1;
+  if (perGw >= 4.5) return 2;
+  if (perGw >= 3) return 3;
+  if (perGw >= 1.5) return 4;
+  return 5;
+}
+
+/** Projected points over `count` gameweeks from `gw`, and how many gameweeks had a projection. */
+export function xpOver(
+  data: GameData,
+  player: Player,
+  gw: number,
+  count: number,
+): { total: number; gws: number } {
+  let total = 0;
+  let gws = 0;
+  for (let g = gw; g < gw + count && g <= data.events.length; g++) {
+    const xp = xpFor(data, player, g);
+    if (xp == null) continue;
+    total += xp;
+    gws++;
+  }
+  return { total, gws };
+}
+
+export interface MetricPills {
+  pills: TokenMetric[];
+  /** No fixture this gameweek: the token is greyed out. */
+  blank: boolean;
+}
+
+const finishedGws = (data: GameData) => data.events.filter((e) => e.finished).length;
+
+/**
+ * The pill(s) under a player for the chosen metric in a gameweek. Next
+ * fixture is coloured by difficulty (two pills in a double); points metrics
+ * by how good the value is; price and ownership are neutral, as neither is
+ * good or bad in itself. A blank gameweek greys the player out, with a dash
+ * for the metrics that depend on that gameweek's fixture.
+ */
+export function metricPills(data: GameData, player: Player, gw: number, metric: Metric): MetricPills {
+  const blank = fixturesFor(data, player.team, gw).length === 0;
+  const pill = (label: string, tier: number | null): MetricPills => ({
+    pills: [{ label, difficulty: tier }],
+    blank,
+  });
+
+  switch (metric) {
+    case "fixture":
+      return { pills: fixtureMetrics(data, player.team, gw), blank };
+    case "xp": {
+      if (blank) return { pills: [], blank };
+      const xp = xpFor(data, player, gw);
+      return xp == null ? pill("–", null) : pill(xp.toFixed(1), rateTier(xp));
+    }
+    case "xp3":
+    case "xp5": {
+      const count = metric === "xp3" ? 3 : 5;
+      const { total, gws } = xpOver(data, player, gw, count);
+      return gws === 0 ? pill("–", null) : pill(total.toFixed(1), rateTier(total / gws));
+    }
+    case "form":
+      return pill(player.form.toFixed(1), rateTier(player.form));
+    case "price":
+      return pill(formatPrice(player.price), null);
+    case "selected":
+      return pill(`${player.selectedBy.toFixed(1)}%`, null);
+    case "points":
+      return pill(String(player.totalPoints), rateTier(player.totalPoints / Math.max(1, finishedGws(data))));
+  }
+}
+
+/** Official player photo (77×80, ~12 KB) by the player's stable code. */
+export function photoUrl(player: Player): string {
+  return `https://resources.premierleague.com/premierleague25/photos/players/40x40/${player.code}.png`;
+}

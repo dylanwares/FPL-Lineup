@@ -8,6 +8,25 @@ async function names(page: Page): Promise<Record<number, string>> {
   return Object.fromEntries(file.players.id.map((id: number, i: number) => [id, file.players.name[i]]));
 }
 
+/** Plan names saved in IndexedDB on this device. */
+function storedPlanNames(page: Page): Promise<string[]> {
+  return page.evaluate(
+    () =>
+      new Promise<string[]>((resolve, reject) => {
+        const open = indexedDB.open("fpl-lineup");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const all = open.result.transaction("plans").objectStore("plans").getAll();
+          all.onsuccess = () => {
+            resolve(all.result.map((p: { name: string }) => p.name));
+            open.result.close();
+          };
+          all.onerror = () => reject(all.error);
+        };
+      }),
+  );
+}
+
 const gwNumber = (page: Page) => page.getByRole("navigation", { name: "Gameweek" }).locator(".font-display");
 const bench = (page: Page) => page.getByRole("region", { name: "Bench" });
 
@@ -147,7 +166,7 @@ test("the player sheet starts a one-off sub or transfer for that player", async 
 
 test("press, hold and drag a player onto another to sub them", async ({ page, planner }) => {
   void planner;
-  await page.setViewportSize({ width: 412, height: 1100 }); // pitch and bench both on screen
+  await page.setViewportSize({ width: 412, height: 1200 }); // pitch and bench on screen, clear of the auto-scroll edge
   const n = await names(page);
   const centre = async (name: string) => {
     const box = (await token(page, name).boundingBox())!;
@@ -345,7 +364,9 @@ test("named plans: new, switch, duplicate, rename, delete with undo", async ({ p
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(planButton).toContainText("Free hit GW18");
 
-  // The open plan is remembered on the device.
+  // The open plan is remembered on the device. (Saves are fire-and-forget, so
+  // wait until the restored plan is on disk before reloading.)
+  await expect.poll(() => storedPlanNames(page)).toContain("Free hit GW18");
   await page.reload();
   await expect(page.getByRole("button", { name: /Switch plan/ })).toContainText("Free hit GW18");
   await page.getByRole("button", { name: /Switch plan/ }).click();
@@ -368,4 +389,48 @@ test("account menu changes FPL team; ⋯ menu refreshes the team", async ({ page
   await page.getByRole("button", { name: "Account" }).click();
   await menu.getByRole("menuitem", { name: "Change FPL team" }).click();
   await expect(page.getByLabel("Your FPL team ID")).toBeVisible();
+});
+
+test("metric dropdown changes every pill and is remembered; photos fall back to kits", async ({
+  page,
+  planner,
+}) => {
+  void planner;
+  const n = await names(page);
+  const metric = page.getByLabel("Show under each player");
+  const haaland = token(page, n[411]);
+
+  await expect(metric).toHaveValue("fixture");
+  await metric.selectOption({ label: "Price" });
+  await expect(haaland).toContainText(/£\d+\.\dm/);
+  await metric.selectOption({ label: "Projected points" });
+  await expect(haaland).toContainText(/^\D*\d+\.\d|–/);
+  await metric.selectOption({ label: "Selected by %" });
+  await expect(haaland).toContainText(/\d+\.\d%/);
+
+  // The choice survives a reload.
+  await page.reload();
+  await expect(page.getByLabel("Show under each player")).toHaveValue("selected");
+
+  // Photos: one loads, one fails and shows the kit instead.
+  let first = true;
+  await page.route("**/resources.premierleague.com/**", (route) => {
+    if (first) {
+      first = false;
+      return route.fulfill({
+        contentType: "image/png",
+        body: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+          "base64",
+        ),
+      });
+    }
+    return route.fulfill({ status: 404 });
+  });
+  await page.getByRole("button", { name: "Photos" }).click();
+  await expect(page.getByRole("button", { name: "Photos" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".photo-slot")).toHaveCount(15);
+  await expect(page.locator(".photo-slot[data-failed]")).toHaveCount(14);
+  await expect(page.locator(".photo-slot[data-failed] .photo-fallback").first()).toBeVisible();
+  await expect(page.locator(".photo-slot img").first()).toHaveAttribute("src", /premierleague25.*\.png$/);
 });

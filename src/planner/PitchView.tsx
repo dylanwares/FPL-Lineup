@@ -11,7 +11,8 @@ import { canSwap, formationRows } from "@/engine/squad";
 import { STARTERS } from "@/engine/types";
 import { PlannerSkeleton } from "./PlannerSkeleton";
 import { useGwView } from "./hooks";
-import { engineContext, fixtureMetrics, playerFlag } from "./model";
+import { metricPills, photoUrl, type Metric } from "./metrics";
+import { engineContext, playerFlag } from "./model";
 import {
   canDrag,
   cancelDrag,
@@ -26,7 +27,14 @@ import {
 
 type Role = "C" | "V" | undefined;
 
-function tokenProps(data: GameData, id: number, gw: number, role: Role): Omit<PlayerTokenProps, "onClick"> {
+function tokenProps(
+  data: GameData,
+  id: number,
+  gw: number,
+  role: Role,
+  metric: Metric,
+  photos: boolean,
+): Omit<PlayerTokenProps, "onClick"> {
   const player = data.playerById.get(id);
   const team = player && data.teamById.get(player.team);
   if (!player || !team)
@@ -35,11 +43,14 @@ function tokenProps(data: GameData, id: number, gw: number, role: Role): Omit<Pl
       kit: { style: "plain", primary: "#666", secondary: "#fff", gk: "#666" },
       metrics: [],
     };
+  const { pills, blank } = metricPills(data, player, gw, metric);
   return {
     name: player.name,
     kit: team.kit,
     goalkeeper: player.pos === "GKP",
-    metrics: fixtureMetrics(data, player.team, gw),
+    metrics: pills,
+    blank,
+    photo: photos ? photoUrl(player) : undefined,
     captain: role,
     flag: playerFlag(player),
   };
@@ -64,7 +75,12 @@ const PitchPlayer = memo(function PitchPlayer({
   targeted: boolean;
 }) {
   const data = usePlanner((s) => s.data)!;
-  const props = useMemo(() => tokenProps(data, id, gw, role), [data, id, gw, role]);
+  const metric = usePlanner((s) => s.metric);
+  const photos = usePlanner((s) => s.photos);
+  const props = useMemo(
+    () => tokenProps(data, id, gw, role, metric, photos),
+    [data, id, gw, role, metric, photos],
+  );
   const onClick = useCallback(() => tapPlayer(id), [id]);
   return (
     <PlayerToken
@@ -230,7 +246,12 @@ function usePitchGestures() {
 /** The copy of the dragged player that follows the finger. */
 function DragGhost({ id, gw, role }: { id: number; gw: number; role: Role }) {
   const data = usePlanner((s) => s.data)!;
-  const props = useMemo(() => tokenProps(data, id, gw, role), [data, id, gw, role]);
+  const metric = usePlanner((s) => s.metric);
+  const photos = usePlanner((s) => s.photos);
+  const props = useMemo(
+    () => tokenProps(data, id, gw, role, metric, photos),
+    [data, id, gw, role, metric, photos],
+  );
   return (
     <div
       aria-hidden="true"
