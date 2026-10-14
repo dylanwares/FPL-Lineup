@@ -5,6 +5,7 @@ import { GwNav } from "./GwNav";
 import { playerList, playerSheet, preloadOnIdle } from "./lazy-parts";
 import { ModeBar } from "./ModeBar";
 import { PitchView } from "./PitchView";
+import { PlanHistory } from "./PlanHistory";
 import { PlanBar } from "./PlanBar";
 import { StatsRow } from "./StatsRow";
 import { clearSelection, exitMode, stepGw, usePlanner } from "./store";
@@ -37,6 +38,7 @@ export function PlannerScreen() {
       <StatsRow />
       <PitchView />
       <ModeBar />
+      <PlanHistory />
       <Sheet />
       <TransferList />
       <Toaster />

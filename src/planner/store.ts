@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
-import { addMove, resetGw, stateAt } from "@/engine/plan";
+import { addMove, removeMove, resetGw, stateAt } from "@/engine/plan";
+import { compactPlanGw } from "@/engine/compact";
 import { canSwap } from "@/engine/squad";
 import type { Move, Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
@@ -237,11 +238,17 @@ export type MoveInput = Move extends infer M
     : never
   : never;
 
-/** Applies a move to the gameweek on screen and saves the plan on the device. */
+/**
+ * Applies a move to the gameweek on screen and saves the plan on the device.
+ * The gameweek's moves are then compacted to the fewest steps with the same
+ * result, so History reads as a short list to follow in the FPL app.
+ */
 export function applyMove(move: MoveInput) {
-  const { plan, gw } = get();
+  const { plan, gw, data } = get();
   if (!plan) return;
-  const next = addMove(plan, { ...move, gw: move.gw ?? gw } as Move);
+  const target = move.gw ?? gw;
+  let next = addMove(plan, { ...move, gw: target } as Move);
+  if (data) next = compactPlanGw(next, target, planResult(next, data));
   set({ plan: next });
   persistPlan(next);
 }
@@ -389,6 +396,17 @@ export function buyPlayer(incoming: number) {
     label: "Undo",
     run: () => restorePlan(before),
   });
+}
+
+/** Removes one planned change (History's ×), with Undo. */
+export function removeMoveAt(index: number, label: string) {
+  const { plan } = get();
+  if (!plan || !plan.moves[index]) return;
+  const before = plan;
+  const next = removeMove(plan, index);
+  set({ plan: next, selected: null });
+  persistPlan(next);
+  showToast(`Removed: ${label}`, { label: "Undo", run: () => restorePlan(before) });
 }
 
 /** Clears every move in the gameweek on screen, with Undo. */

@@ -185,3 +185,63 @@ test("press, hold and drag a player onto another to sub them", async ({ page, pl
   await expect(page.getByRole("status").filter({ hasText: "armband" })).toContainText(n[565]);
   await expect(page.getByRole("dialog")).toBeHidden(); // releasing didn't also tap the player
 });
+
+test("history lists this gameweek's changes and can remove one", async ({ page, planner }) => {
+  const n = await names(page);
+  const history = page.getByRole("region", { name: `History · GW${planner.nextGw}` });
+  await expect(history).toContainText("No changes planned");
+
+  // A transfer (via the sheet) and a captain change.
+  await token(page, n[8]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Transfer" }).click();
+  const list = page.getByRole("dialog", { name: `Replace ${n[8]}` });
+  const first = list.locator("ul button").first();
+  const bought = (await first.getAttribute("data-player")) ?? "";
+  await first.click();
+  await token(page, n[154]).click();
+  // dispatchEvent: in dev mode the Next.js badge sits over the sheet's bottom-left button.
+  await page.getByRole("dialog").getByRole("button", { name: "Make captain" }).dispatchEvent("click");
+
+  const rows = history.getByRole("listitem");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText(`${n[8]} → ${bought}`);
+  await expect(rows.nth(1)).toContainText(`${n[154]} made captain`);
+  await expect(history).toContainText("1 transfer");
+
+  // Remove the transfer: the captain change stays, the player comes back.
+  await history.getByRole("button", { name: `Remove: ${n[8]} → ${bought}` }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(token(page, n[8])).toBeVisible();
+  await expect(stats(page)).toContainText("0/3");
+
+  // Undo brings it back; other gameweeks have their own (empty) history.
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(rows).toHaveCount(2);
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await expect(page.getByRole("region", { name: `History · GW${planner.nextGw + 1}` })).toContainText(
+    "No changes planned",
+  );
+});
+
+test("history compacts repeated changes into the fewest steps", async ({ page, planner }) => {
+  const n = await names(page);
+  const history = page.getByRole("region", { name: `History · GW${planner.nextGw}` });
+  const rows = history.getByRole("listitem");
+  await page.getByRole("button", { name: "Sub", exact: true }).click();
+  const swap = async (a: string, b: string) => {
+    await token(page, a).click();
+    await token(page, b).click();
+  };
+
+  // Swap the same pair back and forth: four swaps cancel out entirely.
+  for (let i = 0; i < 2; i++) {
+    await swap(n[8], n[31]);
+    await swap(n[31], n[8]);
+  }
+  await expect(history).toContainText("No changes planned");
+
+  // A fifth swap leaves exactly one step.
+  await swap(n[8], n[31]);
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText(`${n[8]} ⇄ ${n[31]}`);
+});

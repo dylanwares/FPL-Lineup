@@ -5,7 +5,7 @@ import type { ChipUse, EngineContext, GwState, Move, Plan, Slots, Warning } from
 import { STARTERS } from "./types";
 
 /** What one gameweek starts from: the previous gameweek's end (or the snapshot). */
-interface Carry {
+export interface Carry {
   slots: Slots;
   captain: number;
   vice: number;
@@ -250,6 +250,12 @@ export function addMove(plan: Plan, move: Move, now = Date.now()): Plan {
 export function undoMove(plan: Plan, now = Date.now()): Plan {
   if (plan.moves.length === 0) return plan;
   return { ...plan, moves: plan.moves.slice(0, -1), updatedAt: now };
+}
+
+/** Removes one move by its position in the log (History's ×). Later moves are kept and re-checked. */
+export function removeMove(plan: Plan, index: number, now = Date.now()): Plan {
+  if (index < 0 || index >= plan.moves.length) return plan;
+  return { ...plan, moves: plan.moves.filter((_, i) => i !== index), updatedAt: now };
 }
 
 /** Clears every move in one gameweek (Reset). */

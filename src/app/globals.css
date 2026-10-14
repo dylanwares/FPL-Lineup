@@ -63,6 +63,7 @@
   /* Status */
   --doubt: #f5c04a;
   --injured: #f0506a;
+  --urgent: #ff8a3d;
 
   /* Night-stadium pitch */
   --pitch-top: #0b3d27;
@@ -118,6 +119,7 @@
   --color-on-neon: var(--on-neon);
   --color-doubt: var(--doubt);
   --color-injured: var(--injured);
+  --color-urgent: var(--urgent);
 
   --font-display: var(--font-unbounded), "Arial Black", sans-serif;
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;

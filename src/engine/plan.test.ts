@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMove, computePlan, resetGw, stateAt, undoMove } from "./plan";
+import { addMove, computePlan, removeMove, resetGw, stateAt, undoMove } from "./plan";
 import { PRICES, testContext, testPlan, testSnapshot } from "./testing";
 import type { Move, Plan } from "./types";
 
@@ -235,6 +235,22 @@ describe("editing", () => {
     let plan = addMove(testPlan(), { type: "captain", gw: 7, player: 8 });
     plan = addMove(plan, { type: "captain", gw: 7, player: 9 });
     expect(plan.moves).toEqual([{ type: "captain", gw: 7, player: 9 }]);
+  });
+
+  it("removes a single move; a later move that depended on it is flagged, not applied", () => {
+    let plan = addMove(testPlan(), { type: "transfer", gw: 7, out: 3, in: 18 });
+    plan = addMove(plan, { type: "transfer", gw: 7, out: 18, in: 19 }); // chain: 3 → 18 → 19
+    plan = addMove(plan, { type: "captain", gw: 7, player: 8 });
+
+    const withoutFirst = removeMove(plan, 0);
+    expect(withoutFirst.moves).toHaveLength(2);
+    const gw7 = stateAt(computePlan(withoutFirst, ctx), 7)!;
+    expect(gw7.slots).toContain(3); // the original defender stays
+    expect(gw7.captain).toBe(8); // unrelated moves still apply
+    expect(gw7.warnings).toContainEqual(
+      expect.objectContaining({ kind: "invalid-move", move: withoutFirst.moves[0] }),
+    );
+    expect(removeMove(plan, 9)).toBe(plan); // out of range: unchanged
   });
 
   it("undoes and resets", () => {

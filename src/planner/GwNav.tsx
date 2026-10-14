@@ -7,6 +7,8 @@ import { useNow } from "./hooks";
 import { formatCountdown, formatDeadline } from "./model";
 import { stepGw, usePlanner } from "./store";
 
+const HOUR = 3_600_000;
+
 export function GwNav() {
   const gw = usePlanner((s) => s.gw);
   const first = usePlanner((s) => s.team?.startedGw ?? 1);
@@ -43,7 +45,14 @@ export function GwNav() {
           <ChevronRight className="size-4" />
         </PillButton>
       </div>
-      {event && <GwStatus deadline={event.deadline} finished={event.finished} planned={gw >= planFrom} />}
+      {event && (
+        <GwStatus
+          deadline={event.deadline}
+          finished={event.finished}
+          planned={gw >= planFrom}
+          upcoming={gw === planFrom}
+        />
+      )}
     </GlassPanel>
   );
 }
@@ -52,19 +61,33 @@ function GwStatus({
   deadline,
   finished,
   planned,
+  upcoming,
 }: {
   deadline: number;
   finished: boolean;
   planned: boolean;
+  /** The next gameweek to be played (the plan's first). */
+  upcoming: boolean;
 }) {
   const now = useNow();
-  let dot = "bg-mint";
+  // Future gameweeks have no dot; the next one warns as its deadline nears.
+  let dot: string | null = null;
   let label: React.ReactNode;
   if (planned && deadline > now) {
-    label = (
+    if (upcoming) {
+      const left = deadline - now;
+      dot = left < HOUR ? "bg-injured" : left < 24 * HOUR ? "bg-urgent" : "bg-mint";
+    }
+    // Only the next gameweek counts down; later ones just show their deadline date.
+    label = upcoming ? (
       <>
         <span className="font-semibold tabular-nums">{formatCountdown(deadline - now)}</span>
         <span className="text-muted">· {formatDeadline(deadline)}</span>
+      </>
+    ) : (
+      <>
+        <span className="text-muted">Deadline</span>
+        <span className="font-semibold">{formatDeadline(deadline)}</span>
       </>
     );
   } else if (planned) {
@@ -76,7 +99,7 @@ function GwStatus({
   }
   return (
     <div className="glass-pill flex items-center gap-2 rounded-full px-3 py-1.5 text-xs">
-      <span className={`size-2 rounded-full ${dot}`} />
+      {dot && <span className={`size-2 rounded-full ${dot}`} />}
       {label}
     </div>
   );

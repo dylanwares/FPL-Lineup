@@ -3,18 +3,16 @@
 import { Swap, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { playerList } from "./lazy-parts";
-import { resetCurrentGw, toggleMode, usePlanner } from "./store";
+import { toggleMode, usePlanner } from "./store";
 
 // Transfer mode needs the player list: make sure it's loaded before the first tap.
 const preloadPlayerList = () => playerList.preload().catch(() => {});
 
-/** Sub and Transfer toggles under the bench, the current hint, and the gameweek's Reset. */
+/** Sub and Transfer toggles under the bench, and the hint for the current mode. */
 export function ModeBar() {
   const mode = usePlanner((s) => s.mode);
   const selected = usePlanner((s) => s.selected);
-  const gw = usePlanner((s) => s.gw);
   const readOnly = usePlanner((s) => !s.team || s.gw < s.team.planFromGw);
-  const changes = usePlanner((s) => s.plan?.moves.filter((m) => m.gw === s.gw).length ?? 0);
 
   let hint: string | null = null;
   if (mode === "sub")
@@ -48,17 +46,10 @@ export function ModeBar() {
           Transfer
         </PillButton>
       </div>
-      {(hint || (changes > 0 && !readOnly)) && (
-        <div className="flex min-h-9 items-center justify-between gap-3 px-1">
-          <p className="text-xs text-muted" aria-live="polite">
-            {hint ?? `${changes} change${changes === 1 ? "" : "s"} in GW${gw}`}
-          </p>
-          {changes > 0 && !readOnly && (
-            <PillButton size="sm" onClick={resetCurrentGw}>
-              Reset GW{gw}
-            </PillButton>
-          )}
-        </div>
+      {hint && (
+        <p className="px-1 text-xs text-muted" aria-live="polite">
+          {hint}
+        </p>
       )}
     </div>
   );
