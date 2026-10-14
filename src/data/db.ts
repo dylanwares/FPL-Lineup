@@ -66,6 +66,10 @@ export async function writePlan(plan: Plan) {
   await (await getDb()).put("plans", plan);
 }
 
+export async function deletePlan(id: string) {
+  await (await getDb()).delete("plans", id);
+}
+
 /** Test helper. */
 export function resetDbConnection() {
   dbPromise = null;

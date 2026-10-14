@@ -23,6 +23,14 @@ export const ChevronRight = (p: P) => <Icon d="m9 5 7 7-7 7" {...p} />;
 export const ChevronDown = (p: P) => <Icon d="m6 9 6 6 6-6" {...p} />;
 export const Plus = (p: P) => <Icon d="M12 5v14M5 12h14" {...p} />;
 export const Pencil = (p: P) => <Icon d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" {...p} />;
+export const More = (p: P) => (
+  <Icon
+    d="M4.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M10.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M16.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0"
+    {...p}
+  />
+);
+export const Copy = (p: P) => <Icon d="M9 9h10v10H9zM5 15V5h10" {...p} />;
+export const Check = (p: P) => <Icon d="m5 12 5 5 9-10" {...p} />;
 export const Trash = (p: P) => <Icon d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" {...p} />;
 export const Swap = (p: P) => <Icon d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" {...p} />;
 export const Transfer = (p: P) => (

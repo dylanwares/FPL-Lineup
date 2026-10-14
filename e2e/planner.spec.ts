@@ -285,3 +285,87 @@ test("chips: play, move a planned chip, undo and cancel", async ({ page, planner
   await expect(chip("3xc")).toHaveAttribute("aria-pressed", "false");
   await expect(chip("3xc")).toContainText("Available");
 });
+
+test("named plans: new, switch, duplicate, rename, delete with undo", async ({ page, planner }) => {
+  const n = await names(page);
+  const planButton = page.getByRole("button", { name: /Switch plan/ });
+  const history = page.getByRole("region", { name: `History · GW${planner.nextGw}` });
+  const options = page.getByRole("button", { name: "More options" });
+  await expect(planButton).toContainText("Main plan");
+
+  // One change in the main plan.
+  await page.getByRole("button", { name: "Sub", exact: true }).click();
+  await token(page, n[8]).click();
+  await token(page, n[31]).click();
+  await page.getByRole("button", { name: "Sub", exact: true }).click();
+  await expect(history.getByRole("listitem")).toHaveCount(1);
+
+  // New asks for a name first; Cancel creates nothing.
+  await page.getByRole("button", { name: "New plan" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Name your plan");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await planButton.click();
+  await expect(page.getByRole("listbox", { name: "Plans" }).getByRole("option")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+
+  // Then starts blank from the squad.
+  await page.getByRole("button", { name: "New plan" }).click();
+  await page.getByLabel("Plan name").fill("Wildcard route");
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(planButton).toContainText("Wildcard route");
+  await expect(history).toContainText("No changes planned");
+
+  // Switch back with the dropdown.
+  await planButton.click();
+  const list = page.getByRole("listbox", { name: "Plans" });
+  await expect(list.getByRole("option")).toHaveCount(2);
+  await expect(list.getByRole("option", { name: /Main plan/ })).toContainText("1 change");
+  await list.getByRole("option", { name: /Main plan/ }).click();
+  await expect(planButton).toContainText("Main plan");
+  await expect(history.getByRole("listitem")).toHaveCount(1);
+
+  // Duplicate keeps the moves; rename it.
+  await options.click();
+  await page.getByRole("menuitem", { name: "Duplicate" }).click();
+  await expect(planButton).toContainText("Main plan copy");
+  await expect(history.getByRole("listitem")).toHaveCount(1);
+  await options.click();
+  await page.getByRole("menuitem", { name: "Rename" }).click();
+  await page.getByLabel("Plan name").fill("Free hit GW18");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(planButton).toContainText("Free hit GW18");
+
+  // Delete asks first, then offers Undo.
+  await options.click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Delete “Free hit GW18”?");
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("status")).toContainText("Deleted Free hit GW18");
+  await expect(planButton).not.toContainText("Free hit GW18");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(planButton).toContainText("Free hit GW18");
+
+  // The open plan is remembered on the device.
+  await page.reload();
+  await expect(page.getByRole("button", { name: /Switch plan/ })).toContainText("Free hit GW18");
+  await page.getByRole("button", { name: /Switch plan/ }).click();
+  await expect(page.getByRole("listbox", { name: "Plans" }).getByRole("option")).toHaveCount(3);
+});
+
+test("account menu changes FPL team; ⋯ menu refreshes the team", async ({ page, planner }) => {
+  void planner;
+  await page.getByRole("button", { name: "More options" }).click();
+  await page.getByRole("menuitem", { name: "Refresh team from FPL" }).click();
+  await expect(page.getByRole("status")).toContainText("Team refreshed from FPL");
+
+  await page.getByRole("button", { name: "Account" }).click();
+  const menu = page.getByRole("menu", { name: "Account" });
+  await expect(menu).toContainText("FPL team ID 1");
+  // A tap outside closes it.
+  await page.getByRole("navigation", { name: "Gameweek" }).click({ position: { x: 5, y: 5 } });
+  await expect(menu).toBeHidden();
+
+  await page.getByRole("button", { name: "Account" }).click();
+  await menu.getByRole("menuitem", { name: "Change FPL team" }).click();
+  await expect(page.getByLabel("Your FPL team ID")).toBeVisible();
+});

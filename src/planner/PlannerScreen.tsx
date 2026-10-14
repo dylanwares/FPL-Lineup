@@ -14,13 +14,13 @@ import { Toaster } from "./Toaster";
 
 export function PlannerScreen() {
   // ← / → change gameweek on desktop; Escape cancels a selection, then the mode.
-  // Ignored while typing or with a sheet open.
+  // Ignored while typing or with a sheet, menu or dialog open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
       if (e.target instanceof HTMLElement && e.target.closest("input, textarea, select")) return;
-      const { sheetPlayer, mode, selected } = usePlanner.getState();
-      if (sheetPlayer != null || (mode === "transfer" && selected !== null)) return;
+      const { sheetPlayer, mode, selected, planUi } = usePlanner.getState();
+      if (sheetPlayer != null || planUi !== null || (mode === "transfer" && selected !== null)) return;
       if (e.key === "ArrowLeft") stepGw(-1);
       else if (e.key === "ArrowRight") stepGw(1);
       else if (e.key === "Escape" && selected !== null) clearSelection();

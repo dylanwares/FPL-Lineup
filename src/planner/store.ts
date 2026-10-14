@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { ChipName } from "@/config/rules";
-import { readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
+import { deletePlan as deleteStoredPlan, readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
 import { cancelChip, playChip } from "@/engine/chips";
@@ -9,13 +9,25 @@ import { compactPlanGw } from "@/engine/compact";
 import { canSwap } from "@/engine/squad";
 import type { Move, Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
-import { CHIP_NAMES, engineContext, newPlan, planResult, rebasePlan } from "./model";
+import {
+  CHIP_NAMES,
+  copyPlan,
+  engineContext,
+  MAX_PLAN_NAME,
+  newPlan,
+  planResult,
+  rebasePlan,
+  uniquePlanName,
+} from "./model";
 
 const ENTRY_KEY = "fpl-lineup:entry";
+const planKey = (entryId: number) => `fpl-lineup:plan:${entryId}`;
 
 export type Phase = "booting" | "connect" | "importing" | "ready";
 export type PastState = PastPicks | "loading" | "error";
 export type Mode = "none" | "sub" | "transfer";
+/** The plan dropdown, the ⋯ menu, or one of the plan dialogs. */
+export type PlanUi = "list" | "actions" | "create" | "rename" | "delete" | null;
 
 export interface Toast {
   id: number;
@@ -28,7 +40,11 @@ export interface PlannerState {
   data: GameData | null;
   dataError: string | null;
   team: TeamImport | null;
+  /** The plan on screen. */
   plan: Plan | null;
+  /** Every plan for this team, in creation order (includes `plan`). */
+  plans: Plan[];
+  planUi: PlanUi;
   /** The gameweek on screen. */
   gw: number;
   /** Player whose sheet is open. */
@@ -56,6 +72,8 @@ export const usePlanner = create<PlannerState>(() => ({
   dataError: null,
   team: null,
   plan: null,
+  plans: [],
+  planUi: null,
   gw: 1,
   sheetPlayer: null,
   importError: null,
@@ -97,6 +115,45 @@ function persistPlan(plan: Plan) {
   writePlan(plan).catch((err: unknown) => console.warn("Couldn't save plan", err));
 }
 
+function storedPlanId(entryId: number): string | null {
+  try {
+    return localStorage.getItem(planKey(entryId));
+  } catch {
+    return null;
+  }
+}
+
+function rememberPlanId(plan: Plan) {
+  try {
+    localStorage.setItem(planKey(plan.entryId), plan.id);
+  } catch {
+    // Storage blocked: the most recently edited plan opens next time.
+  }
+}
+
+const byCreated = (a: Plan, b: Plan) => a.createdAt - b.createdAt;
+
+/** The plan to open: the one last on screen on this device, else the most recently edited. */
+function pickPlan(plans: Plan[], entryId: number): Plan | undefined {
+  const id = storedPlanId(entryId);
+  return (
+    plans.find((p) => p.id === id) ??
+    plans.reduce<Plan | undefined>((a, b) => (!a || b.updatedAt > a.updatedAt ? b : a), undefined)
+  );
+}
+
+/** Saves an edit to a plan, keeping the plan list in step. */
+function commitPlan(next: Plan) {
+  const { plans } = get();
+  set({
+    plan: next,
+    plans: plans.some((p) => p.id === next.id)
+      ? plans.map((p) => (p.id === next.id ? next : p))
+      : [...plans, next].sort(byCreated),
+  });
+  persistPlan(next);
+}
+
 /* ---------------- Network ---------------- */
 
 async function fetchTeam(entryId: number): Promise<TeamImport> {
@@ -133,8 +190,9 @@ export async function boot() {
   ]);
   if (!team) return connect(entryId);
 
-  const plan = plans.sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? newPlan(team);
-  set({ phase: "ready", team, plan, gw: team.planFromGw });
+  if (plans.length === 0) plans.push(newPlan(team));
+  const plan = pickPlan(plans, entryId)!;
+  set({ phase: "ready", team, plan, plans: plans.sort(byCreated), gw: team.planFromGw });
   if (isStale(team, get().data!)) void refreshTeam();
 }
 
@@ -143,14 +201,21 @@ export async function connect(entryId: number) {
   set({ phase: "importing", importError: null });
   try {
     const team = await fetchTeam(entryId);
-    const existing = (await readPlans(entryId).catch(() => [] as Plan[])).sort(
-      (a, b) => b.updatedAt - a.updatedAt,
-    )[0];
-    const plan = existing ? rebasePlan(existing, team) : newPlan(team);
+    const stored = await readPlans(entryId).catch(() => [] as Plan[]);
+    const plans = stored.length ? stored.map((p) => rebasePlan(p, team)) : [newPlan(team)];
     await writeTeam(team).catch(() => {});
-    persistPlan(plan);
+    plans.forEach(persistPlan);
     rememberEntryId(entryId);
-    set({ phase: "ready", team, plan, gw: team.planFromGw, past: {}, sheetPlayer: null });
+    const plan = pickPlan(plans, entryId)!;
+    set({
+      phase: "ready",
+      team,
+      plan,
+      plans: plans.sort(byCreated),
+      gw: team.planFromGw,
+      past: {},
+      sheetPlayer: null,
+    });
   } catch (err) {
     set({ phase: "connect", importError: err instanceof Error ? err.message : String(err) });
   }
@@ -163,11 +228,13 @@ export async function refreshTeam() {
   set({ refreshing: true, refreshError: null });
   try {
     const fresh = await fetchTeam(team.entryId);
-    const rebased = rebasePlan(plan, fresh);
+    // Every plan for the team moves onto the new squad, not just the one on screen.
+    const plans = get().plans.map((p) => rebasePlan(p, fresh));
     await writeTeam(fresh).catch(() => {});
-    persistPlan(rebased);
+    plans.forEach(persistPlan);
     const gw = Math.max(get().gw, fresh.planFromGw);
-    set({ team: fresh, plan: rebased, gw, past: {}, refreshing: false });
+    const current = plans.find((p) => p.id === get().plan?.id) ?? plans[0];
+    set({ team: fresh, plan: current, plans, gw, past: {}, refreshing: false });
   } catch (err) {
     set({ refreshing: false, refreshError: err instanceof Error ? err.message : String(err) });
   }
@@ -180,6 +247,8 @@ export function disconnect() {
     phase: "connect",
     team: null,
     plan: null,
+    plans: [],
+    planUi: null,
     past: {},
     sheetPlayer: null,
     importError: null,
@@ -251,8 +320,7 @@ export function applyMove(move: MoveInput) {
   const target = move.gw ?? gw;
   let next = addMove(plan, { ...move, gw: target } as Move);
   if (data) next = compactPlanGw(next, target, planResult(next, data));
-  set({ plan: next });
-  persistPlan(next);
+  commitPlan(next);
 }
 
 export function setCaptain(player: number) {
@@ -280,8 +348,8 @@ export function dismissToast(id: number) {
 
 /** Replaces the plan wholesale (Undo restores the plan as it was before a move). */
 function restorePlan(plan: Plan) {
-  set({ plan, selected: null });
-  persistPlan(plan);
+  set({ selected: null });
+  commitPlan(plan);
 }
 
 /** Switches Sub or Transfer mode on (or off if it's already on). Only one mode at a time. */
@@ -406,8 +474,8 @@ export function removeMoveAt(index: number, label: string) {
   if (!plan || !plan.moves[index]) return;
   const before = plan;
   const next = removeMove(plan, index);
-  set({ plan: next, selected: null });
-  persistPlan(next);
+  set({ selected: null });
+  commitPlan(next);
   showToast(`Removed: ${label}`, { label: "Undo", run: () => restorePlan(before) });
 }
 
@@ -417,8 +485,8 @@ export function resetCurrentGw() {
   if (!plan || !plan.moves.some((m) => m.gw === gw)) return;
   const before = plan;
   const next = resetGw(plan, gw);
-  set({ plan: next, selected: null });
-  persistPlan(next);
+  set({ selected: null });
+  commitPlan(next);
   showToast(`GW${gw} reset`, { label: "Undo", run: () => restorePlan(before) });
 }
 
@@ -454,7 +522,98 @@ export function toggleChip(name: ChipName) {
   }
   next = compactPlanGw(next, gw, planResult(next, data));
   const before = plan;
-  set({ plan: next, selected: null });
-  persistPlan(next);
+  set({ selected: null });
+  commitPlan(next);
   showToast(message, { label: "Undo", run: () => restorePlan(before) });
+}
+
+/* ---------------- Named plans ---------------- */
+
+export function openPlanUi(ui: PlanUi) {
+  set({ planUi: ui, sheetPlayer: null });
+}
+
+export function closePlanUi() {
+  set({ planUi: null });
+}
+
+/** Shows another of the team's plans. Undo toasts belong to the old plan, so they go. */
+export function selectPlan(id: string) {
+  const plan = get().plans.find((p) => p.id === id);
+  set({ planUi: null });
+  if (!plan || plan.id === get().plan?.id) return;
+  rememberPlanId(plan);
+  set({ plan, selected: null, sheetPlayer: null, dragFrom: null, dragOver: null, toasts: [] });
+}
+
+function addPlan(plan: Plan, message: string) {
+  commitPlan(plan);
+  rememberPlanId(plan);
+  set({ selected: null, sheetPlayer: null, toasts: [] });
+  showToast(message);
+}
+
+/** A new plan from the current squad with no moves, named in the "Name your plan" box. */
+export function createPlan(name: string) {
+  const { team, plans } = get();
+  const trimmed = name.trim().slice(0, MAX_PLAN_NAME);
+  set({ planUi: null });
+  if (!team || !trimmed) return;
+  const plan = newPlan(team, uniquePlanName(plans, trimmed));
+  addPlan(plan, `Created ${plan.name}`);
+}
+
+/** A copy of the plan on screen, moves and all, to try another route. */
+export function duplicatePlan() {
+  const { plan, plans } = get();
+  if (!plan) return;
+  const copy = copyPlan(plan, uniquePlanName(plans, `${plan.name} copy`.slice(0, MAX_PLAN_NAME)));
+  set({ planUi: null });
+  addPlan(copy, `Duplicated as ${copy.name}`);
+}
+
+export function renamePlan(name: string) {
+  const { plan } = get();
+  const trimmed = name.trim().slice(0, MAX_PLAN_NAME);
+  set({ planUi: null });
+  if (!plan || !trimmed || trimmed === plan.name) return;
+  commitPlan({ ...plan, name: trimmed, updatedAt: Date.now() });
+}
+
+/**
+ * Deletes the plan on screen (after the confirm dialog) and opens the most
+ * recently edited of the rest. Deleting the last plan leaves a fresh one.
+ * Undo puts it back while the toast is up.
+ */
+export function deleteCurrentPlan() {
+  const { plan, plans, team } = get();
+  set({ planUi: null });
+  if (!plan || !team) return;
+  let rest = plans.filter((p) => p.id !== plan.id);
+  const fresh = rest.length === 0 ? newPlan(team) : null;
+  if (fresh) rest = [fresh];
+  const next = rest.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
+
+  deleteStoredPlan(plan.id).catch((err: unknown) => console.warn("Couldn't delete plan", err));
+  if (fresh) persistPlan(fresh);
+  rememberPlanId(next);
+  set({ plan: next, plans: rest, selected: null, sheetPlayer: null, toasts: [] });
+
+  showToast(`Deleted ${plan.name}`, {
+    label: "Undo",
+    run: () => {
+      if (fresh) deleteStoredPlan(fresh.id).catch(() => {});
+      const restored = [...get().plans.filter((p) => p.id !== fresh?.id), plan].sort(byCreated);
+      persistPlan(plan);
+      rememberPlanId(plan);
+      set({ plan, plans: restored, selected: null });
+    },
+  });
+}
+
+/** Refresh from the ⋯ menu: the menu closes and a toast confirms (errors show under the plan bar). */
+export async function refreshTeamFromMenu() {
+  set({ planUi: null });
+  await refreshTeam();
+  if (!get().refreshError) showToast("Team refreshed from FPL");
 }

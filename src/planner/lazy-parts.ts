@@ -6,9 +6,11 @@ import { lazyComponent } from "@/lib/lazy";
  */
 export const playerSheet = lazyComponent(() => import("./PlayerSheet").then((m) => m.PlayerSheet));
 export const playerList = lazyComponent(() => import("./PlayerList").then((m) => m.default));
+export const planMenus = lazyComponent(() => import("./PlanMenus").then((m) => m.PlanMenus));
 
 export function preloadOnIdle(): () => void {
-  const run = () => void Promise.all([playerSheet.preload(), playerList.preload()]).catch(() => {});
+  const run = () =>
+    void Promise.all([playerSheet.preload(), playerList.preload(), planMenus.preload()]).catch(() => {});
   if ("requestIdleCallback" in window) {
     const id = requestIdleCallback(run, { timeout: 3000 });
     return () => cancelIdleCallback(id);

@@ -64,11 +64,11 @@ export function snapshotFromImport(team: TeamImport): Snapshot {
   };
 }
 
-export function newPlan(team: TeamImport, now = Date.now()): Plan {
+export function newPlan(team: TeamImport, name = "Main plan", now = Date.now()): Plan {
   return {
     id: crypto.randomUUID(),
     entryId: team.entryId,
-    name: "Main plan",
+    name,
     base: snapshotFromImport(team),
     moves: [],
     createdAt: now,
@@ -87,6 +87,20 @@ export function rebasePlan(plan: Plan, team: TeamImport, now = Date.now()): Plan
     moves: plan.moves.filter((m) => m.gw >= team.planFromGw),
     updatedAt: now,
   };
+}
+
+/** A copy of a plan (snapshot and moves) under a new id and name. */
+export function copyPlan(plan: Plan, name: string, now = Date.now()): Plan {
+  return { ...plan, id: crypto.randomUUID(), name, createdAt: now, updatedAt: now };
+}
+
+export const MAX_PLAN_NAME = 40;
+
+/** `base`, or `base 2`, `base 3`… — the first that no plan uses yet. */
+export function uniquePlanName(plans: Plan[], base: string): string {
+  const taken = new Set(plans.map((p) => p.name.toLowerCase()));
+  if (!taken.has(base.toLowerCase())) return base;
+  for (let n = 2; ; n++) if (!taken.has(`${base} ${n}`.toLowerCase())) return `${base} ${n}`;
 }
 
 /* ---------------- Display helpers ---------------- */

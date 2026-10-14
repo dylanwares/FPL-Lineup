@@ -1,37 +1,53 @@
 "use client";
 
-import { Logout, Refresh } from "@/components/ui/Icons";
+import { ChevronDown, More, Plus } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
-import { disconnect, refreshTeam, usePlanner } from "./store";
+import { planMenus } from "./lazy-parts";
+import { openPlanUi, usePlanner } from "./store";
 
-/** Plan name and team. Named plans (new / rename / delete) arrive in Stage 4. */
+/**
+ * New plan, the plan dropdown, and the ⋯ menu (plan actions and Refresh from
+ * FPL). Changing FPL team lives in the header's account menu.
+ */
 export function PlanBar() {
   const planName = usePlanner((s) => s.plan?.name);
   const teamName = usePlanner((s) => s.team?.teamName);
-  const refreshing = usePlanner((s) => s.refreshing);
+  const planUi = usePlanner((s) => s.planUi);
   const refreshError = usePlanner((s) => s.refreshError);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2">
-        <div className="glass-pill flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl px-3.5">
+    <div className="relative flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <PillButton size="icon" aria-label="New plan" title="New plan" onClick={() => openPlanUi("create")}>
+          <Plus className="size-4" />
+        </PillButton>
+        <button
+          type="button"
+          aria-label={`Plan: ${planName}. Switch plan`}
+          aria-haspopup="listbox"
+          aria-expanded={planUi === "list"}
+          onClick={() => openPlanUi(planUi === "list" ? null : "list")}
+          className="glass-pill flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl pr-2.5 pl-3.5 text-left"
+        >
           <span className="size-1.5 shrink-0 rounded-full bg-mint" />
           <span className="truncate text-[13px] font-semibold">{planName}</span>
-          <span className="truncate text-xs text-muted">· {teamName}</span>
-        </div>
+          <span className="min-w-0 shrink-[3] truncate text-xs text-muted">· {teamName}</span>
+          <ChevronDown
+            className={`ml-auto size-4 shrink-0 text-muted transition-transform ${planUi === "list" ? "rotate-180" : ""}`}
+          />
+        </button>
         <PillButton
           size="icon"
-          aria-label="Refresh team from FPL"
-          title="Refresh team from FPL"
-          disabled={refreshing}
-          onClick={() => void refreshTeam()}
+          aria-label="More options"
+          title="More options"
+          aria-haspopup="menu"
+          aria-expanded={planUi === "actions"}
+          onClick={() => openPlanUi(planUi === "actions" ? null : "actions")}
         >
-          <Refresh className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
-        </PillButton>
-        <PillButton size="icon" aria-label="Switch team" title="Switch team" onClick={disconnect}>
-          <Logout className="size-4" />
+          <More className="size-4" />
         </PillButton>
       </div>
+      {planUi && <planMenus.Lazy />}
       {refreshError && (
         <p role="alert" className="px-1 text-xs text-injured">
           Couldn’t refresh your team: {refreshError}

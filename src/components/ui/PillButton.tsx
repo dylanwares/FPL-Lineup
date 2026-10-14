@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 
 type Variant = "glass" | "neon" | "hot" | "soft";
 
@@ -15,7 +15,7 @@ const SIZES = {
   icon: "size-10 justify-center",
 };
 
-export interface PillButtonProps extends ComponentPropsWithoutRef<"button"> {
+export interface PillButtonProps extends ComponentProps<"button"> {
   variant?: Variant;
   size?: keyof typeof SIZES;
   /** Toggle buttons: switch to the tinted accent style while pressed. */
