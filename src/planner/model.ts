@@ -1,10 +1,23 @@
-import { getRules } from "@/config/rules";
+import { getRules, type ChipName } from "@/config/rules";
 import type { TokenMetric } from "@/components/pitch/PlayerToken";
 import type { GameData, Player } from "@/data/model";
 import { fixturesFor } from "@/data/model";
 import { computePlan, type PlanResult } from "@/engine/plan";
 import type { EngineContext, Plan, Snapshot } from "@/engine/types";
 import type { TeamImport } from "@/lib/fpl/types";
+
+/** Chips in the order the chips row shows them. */
+export const CHIPS: ChipName[] = ["wildcard", "freehit", "3xc", "bboost"];
+
+export const CHIP_NAMES: Record<ChipName, string> = {
+  wildcard: "Wildcard",
+  freehit: "Free Hit",
+  bboost: "Bench Boost",
+  "3xc": "Triple Captain",
+};
+
+/** Tile labels, short enough for four tiles across a phone. */
+export const CHIP_SHORT: Record<ChipName, string> = { ...CHIP_NAMES, "3xc": "Triple Cap" };
 
 /* ---------------- Engine wiring ---------------- */
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ChipsRow } from "./ChipsRow";
 import { GwNav } from "./GwNav";
 import { playerList, playerSheet, preloadOnIdle } from "./lazy-parts";
 import { ModeBar } from "./ModeBar";
@@ -36,6 +37,7 @@ export function PlannerScreen() {
       <PlanBar />
       <GwNav />
       <StatsRow />
+      <ChipsRow />
       <PitchView />
       <ModeBar />
       <PlanHistory />

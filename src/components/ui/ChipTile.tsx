@@ -1,17 +1,19 @@
 import type { ComponentPropsWithoutRef } from "react";
 
-export type ChipState = "available" | "played" | "used";
+/** "planned": played in another gameweek; looks nearly disabled, but tapping moves it here. */
+export type ChipState = "available" | "played" | "planned" | "used";
 
 const LOOK: Record<ChipState, string> = {
   available: "glass-pill chip-available text-fg",
   played: "accent-soft hot",
+  planned: "glass-pill chip-planned text-muted opacity-70",
   used: "glass-pill text-muted opacity-50",
 };
 
 interface ChipTileProps extends ComponentPropsWithoutRef<"button"> {
   label: string;
   state: ChipState;
-  /** Second line, e.g. "Available", "Played GW7", "Used GW3". */
+  /** Second line, e.g. "Available", "Playing", "Planned GW10", "Used GW3". */
   detail: string;
 }
 

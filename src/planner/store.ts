@@ -1,13 +1,15 @@
 import { create } from "zustand";
+import type { ChipName } from "@/config/rules";
 import { readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
+import { cancelChip, playChip } from "@/engine/chips";
 import { addMove, removeMove, resetGw, stateAt } from "@/engine/plan";
 import { compactPlanGw } from "@/engine/compact";
 import { canSwap } from "@/engine/squad";
 import type { Move, Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
-import { engineContext, newPlan, planResult, rebasePlan } from "./model";
+import { CHIP_NAMES, engineContext, newPlan, planResult, rebasePlan } from "./model";
 
 const ENTRY_KEY = "fpl-lineup:entry";
 
@@ -418,4 +420,41 @@ export function resetCurrentGw() {
   set({ plan: next, selected: null });
   persistPlan(next);
   showToast(`GW${gw} reset`, { label: "Undo", run: () => restorePlan(before) });
+}
+
+/* ---------------- Chips ---------------- */
+
+const gwList = (gws: number[]) => gws.map((g) => `GW${g}`).join(", ");
+
+/**
+ * Plays a chip in the gameweek on screen, or cancels it if it's already
+ * played there. A chip planned in a clashing gameweek moves here. With Undo.
+ */
+export function toggleChip(name: ChipName) {
+  const { plan, data, gw, team } = get();
+  if (!plan || !data || !team || gw < team.planFromGw) return;
+  const result = planResult(plan, data);
+  const state = stateAt(result, gw);
+  if (!state) return;
+
+  let next: Plan;
+  let message: string;
+  if (state.chip === name) {
+    next = cancelChip(plan, gw);
+    message = `${CHIP_NAMES[name]} cancelled for GW${gw}`;
+  } else {
+    const played = playChip(plan, name, gw, result);
+    if (!played) return;
+    next = played.plan;
+    message = played.movedFrom.length
+      ? `${CHIP_NAMES[name]} moved from ${gwList(played.movedFrom)} to GW${gw}`
+      : state.chip
+        ? `${CHIP_NAMES[name]} played in GW${gw} instead of ${CHIP_NAMES[state.chip]}`
+        : `${CHIP_NAMES[name]} played in GW${gw}`;
+  }
+  next = compactPlanGw(next, gw, planResult(next, data));
+  const before = plan;
+  set({ plan: next, selected: null });
+  persistPlan(next);
+  showToast(message, { label: "Undo", run: () => restorePlan(before) });
 }

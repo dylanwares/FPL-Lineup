@@ -262,6 +262,13 @@ body::after {
     inset 0 1px 0 var(--glass-highlight);
 }
 
+/* Chip planned in another gameweek: faded like a used chip, but with a dashed
+   edge that says "tap to move it here". */
+.glass-pill.chip-planned {
+  outline: 1.5px dashed color-mix(in srgb, var(--cyan) 55%, transparent);
+  outline-offset: -2px;
+}
+
 .neon-text {
   background: var(--grad-primary);
   -webkit-background-clip: text;

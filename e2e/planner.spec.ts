@@ -245,3 +245,43 @@ test("history compacts repeated changes into the fewest steps", async ({ page, p
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText(`${n[8]} ⇄ ${n[31]}`);
 });
+
+test("chips: play, move a planned chip, undo and cancel", async ({ page, planner }) => {
+  // Entry 1 used its first-half Bench Boost (GW2), Wildcard (GW3) and Free Hit (GW5).
+  test.skip(planner.nextGw + 2 > 19, "needs the first-half chip window");
+  const chip = (name: string) => page.locator(`[data-chip="${name}"]`);
+  const next = page.getByRole("button", { name: "Next gameweek" });
+  const prev = page.getByRole("button", { name: "Previous gameweek" });
+
+  await expect(chip("wildcard")).toBeDisabled();
+  await expect(chip("wildcard")).toContainText("Used GW3");
+
+  // Plan Triple Captain two gameweeks ahead.
+  await next.click();
+  await next.click();
+  await chip("3xc").click();
+  await expect(chip("3xc")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("status")).toContainText(`Triple Captain played in GW${planner.nextGw + 2}`);
+
+  // Earlier in the same half it reads as planned, but can still be tapped to move it.
+  await prev.click();
+  await prev.click();
+  await expect(chip("3xc")).toContainText(`Planned GW${planner.nextGw + 2}`);
+  await expect(chip("3xc")).toBeEnabled();
+  await chip("3xc").click();
+  await expect(page.getByRole("status")).toContainText(
+    `Triple Captain moved from GW${planner.nextGw + 2} to GW${planner.nextGw}`,
+  );
+  await expect(chip("3xc")).toHaveAttribute("aria-pressed", "true");
+
+  // Undo puts it back where it was.
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(chip("3xc")).toContainText(`Planned GW${planner.nextGw + 2}`);
+
+  // A second tap on a played chip cancels it.
+  await next.click();
+  await next.click();
+  await chip("3xc").click();
+  await expect(chip("3xc")).toHaveAttribute("aria-pressed", "false");
+  await expect(chip("3xc")).toContainText("Available");
+});

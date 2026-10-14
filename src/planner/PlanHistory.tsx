@@ -1,6 +1,5 @@
 "use client";
 
-import type { ChipName } from "@/config/rules";
 import { CaptainBadge } from "@/components/ui/Badges";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Close, Swap, Transfer } from "@/components/ui/Icons";
@@ -8,15 +7,8 @@ import { PillButton } from "@/components/ui/PillButton";
 import type { GameData } from "@/data/model";
 import type { Move } from "@/engine/types";
 import { useGwView } from "./hooks";
-import { formatPrice } from "./model";
+import { CHIP_NAMES, formatPrice } from "./model";
 import { removeMoveAt, resetCurrentGw, usePlanner } from "./store";
-
-const CHIP_NAMES: Record<ChipName, string> = {
-  wildcard: "Wildcard",
-  freehit: "Free Hit",
-  bboost: "Bench Boost",
-  "3xc": "Triple Captain",
-};
 
 /** A short, plain description of a move, used for the row and the "Removed: …" toast. */
 export function describeMove(data: GameData, move: Move): string {
