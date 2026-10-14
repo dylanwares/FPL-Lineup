@@ -324,6 +324,16 @@ body::after {
   mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
 }
 
+/* Slow, gentle right-to-left drift; one group per cycle so the loop is seamless. */
+@keyframes ad-board-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ad-board-track {
+  animation: ad-board-scroll 60s linear infinite;
+}
+
 /* ---------- Motion ---------- */
 
 @keyframes sheet-in {

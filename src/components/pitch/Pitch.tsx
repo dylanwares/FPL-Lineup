@@ -47,8 +47,15 @@ function AdBoard() {
   );
   return (
     <div className="ad-board flex h-7 items-center overflow-hidden">
-      <div className="ad-board-text flex w-full items-center justify-center gap-2.5 font-display text-[8.5px] font-bold tracking-[0.22em] whitespace-nowrap uppercase">
-        {[0, 1, 2].map(item)}
+      <div className="ad-board-text w-full overflow-hidden font-display text-[8.5px] font-bold tracking-[0.22em] whitespace-nowrap uppercase">
+        {/* Two identical groups; the track slides by exactly one group for a seamless loop. */}
+        <div className="ad-board-track flex w-max">
+          {[0, 1].map((group) => (
+            <div key={group} className="flex shrink-0 items-center gap-6 pr-6" aria-hidden={group === 1}>
+              {[0, 1, 2].map(item)}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
