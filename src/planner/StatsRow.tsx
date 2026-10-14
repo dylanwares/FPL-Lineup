@@ -29,6 +29,7 @@ export function StatsRow() {
   const s = view.state;
   const free = FREE_TRANSFER_CHIPS.has(s.chip) ? "∞" : s.freeTransfers;
   const clubWarnings = s.warnings.filter((w) => w.kind === "club-limit");
+  const limit = s.warnings.find((w) => w.kind === "transfer-limit");
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -41,9 +42,14 @@ export function StatsRow() {
           tone={s.cost ? "danger" : "default"}
         />
       </GlassPanel>
-      {(s.bank < 0 || clubWarnings.length > 0) && (
+      {(s.bank < 0 || clubWarnings.length > 0 || limit) && (
         <ul role="alert" className="flex flex-col gap-0.5 px-1 text-xs text-magenta">
           {s.bank < 0 && <li>Over budget by {formatPrice(-s.bank)}</li>}
+          {limit && (
+            <li>
+              {limit.count} transfers: FPL allows {limit.max} a gameweek without a Wildcard or Free Hit
+            </li>
+          )}
           {clubWarnings.map((w) => (
             <li key={w.team}>
               {w.count} players from {teamById?.get(w.team)?.name ?? "one club"} (max 3)

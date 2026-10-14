@@ -41,8 +41,8 @@ describe("buildTeamImport", () => {
   });
 
   it("replays free transfers through chip weeks", () => {
-    // GW2 1 → GW3 2 → (WC) GW4 3 → GW5 4 → (FH) GW6 5 → 1 used → GW7 5
-    expect(team.freeTransfers).toBe(5);
+    // GW2 1 → (BB, none used) GW3 2 → (WC: kept) GW4 2 → GW5 3 → (FH: kept) GW6 3 → 1 used → GW7 3
+    expect(team.freeTransfers).toBe(3);
   });
 
   it("lists chips used and history", () => {
@@ -74,6 +74,37 @@ describe("errors and edge cases", () => {
   it("rejects a team that hasn't played yet", () => {
     const entry = { ...input.entry, current_event: null };
     expect(() => buildTeamImport({ ...input, entry }, rules)).toThrow(TeamImportError);
+  });
+
+  it("keeps one free transfer after a Wildcard played with one (not two)", () => {
+    // Joined GW5 (no transfers before the first deadline) → GW6: 1 → Wildcard in GW6 → GW7: 1.
+    const history: FplHistory = {
+      chips: [{ name: "wildcard", event: 6 }],
+      current: [5, 6].map((event) => ({
+        event,
+        points: 50,
+        total_points: 50,
+        bank: 0,
+        value: 1000,
+        event_transfers: 0,
+        event_transfers_cost: 0,
+      })),
+    };
+    expect(deriveFreeTransfers({ ...input.entry, started_event: 5 }, history, 7, rules)).toBe(1);
+    // Same with two saved: still two.
+    const twoSaved: FplHistory = {
+      chips: [{ name: "wildcard", event: 7 }],
+      current: [5, 6, 7].map((event) => ({
+        event,
+        points: 50,
+        total_points: 50,
+        bank: 0,
+        value: 1000,
+        event_transfers: 0,
+        event_transfers_cost: 0,
+      })),
+    };
+    expect(deriveFreeTransfers({ ...input.entry, started_event: 5 }, twoSaved, 8, rules)).toBe(2);
   });
 
   it("charges FTs for hits and resets to one", () => {

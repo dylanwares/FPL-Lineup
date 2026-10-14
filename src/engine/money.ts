@@ -13,8 +13,11 @@ export function sellingPrice(purchase: number, current: number): number {
 export const FREE_TRANSFER_CHIPS: ReadonlySet<ChipName | null> = new Set(["wildcard", "freehit"]);
 
 /**
- * Free transfers going into the next gameweek. Unused ones roll over up to the
- * season cap; a Wildcard or Free Hit keeps the saved ones (transfers that week are free).
+ * Free transfers going into the next gameweek.
+ * - Normally: unused ones roll over and one more is added, up to the cap.
+ * - After a Wildcard or Free Hit: the saved transfers are kept exactly, with
+ *   no extra one ("if you had 2 saved free transfers, you will still have 2
+ *   the Gameweek after playing the chip" — official FPL rules).
  */
 export function nextFreeTransfers(
   available: number,
@@ -23,9 +26,10 @@ export function nextFreeTransfers(
   nextGw: number,
   rules: SeasonRules,
 ): number {
-  const left = FREE_TRANSFER_CHIPS.has(chip) ? available : Math.max(0, available - transfersMade);
   const override = rules.transfers.overrides.find((o) => o.gw === nextGw);
   if (override) return override.setTo;
+  if (FREE_TRANSFER_CHIPS.has(chip)) return Math.min(rules.transfers.maxBanked, available);
+  const left = Math.max(0, available - transfersMade);
   return Math.min(rules.transfers.maxBanked, left + rules.transfers.freePerGw);
 }
 

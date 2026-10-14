@@ -42,10 +42,14 @@ export interface SeasonRules {
      * Applied after normal rollover for that gameweek.
      */
     overrides: { gw: number; setTo: number }[];
+    /** Most transfers in one gameweek, except with a Wildcard or Free Hit. */
+    maxPerGw: number;
   };
   /** Each entry is one copy of a chip, usable once inside its window. */
   chips: { name: ChipName; window: ChipWindow }[];
   maxChipsPerGw: number;
+  /** Chips that can't be played in consecutive gameweeks (e.g. Free Hit). */
+  noConsecutive: ChipName[];
   /** Captain multiplier without and with Triple Captain. */
   captainMultiplier: { normal: number; triple: number };
 }
