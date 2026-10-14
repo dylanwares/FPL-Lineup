@@ -450,3 +450,72 @@ test("expected points on the pitch apply the armband and Triple Captain", async 
   await expect(badge).toHaveAttribute("aria-label", new RegExp(`Captain ${n[12]} ×3`));
   await expect.poll(async () => Number(await total.textContent())).toBeGreaterThan(before);
 });
+
+test("past gameweeks show each player's points and opponent, whatever the metric", async ({
+  page,
+  planner,
+}) => {
+  const n = await names(page);
+  const gw = planner.nextGw - 1;
+  const version = await (await page.request.get("/api/version")).json();
+  const file = await (await page.request.get(version.url)).json();
+  const team = (id: number) => file.players.team[file.players.id.indexOf(id)];
+  const short = (t: number) => file.teams.short[file.teams.id.indexOf(t)];
+  // Haaland's fixture that gameweek, from the same bootstrap file the app loads.
+  const i = file.fixtures.gw.findIndex(
+    (g: number, j: number) => g === gw && [file.fixtures.h[j], file.fixtures.a[j]].includes(team(411)),
+  );
+  const home = file.fixtures.h[i] === team(411);
+  const opp = short(home ? file.fixtures.a[i] : file.fixtures.h[i]);
+  const slots = [82, 8, 277, 114, 124, 154, 12, 368, 165, 411, 569, 302, 31, 565, 387];
+  await page.route("**/api/team/1/picks/*", (route) =>
+    route.fulfill({
+      json: {
+        gw,
+        slots,
+        captain: 12,
+        vice: 154,
+        chip: null,
+        points: 61,
+        playerPoints: Object.fromEntries(
+          slots.map((id) => [id, id === 411 ? [{ fixture: file.fixtures.id[i], points: 13 }] : []]),
+        ),
+      },
+    }),
+  );
+
+  await page.getByLabel("Show under each player").selectOption({ label: "Price" });
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await expect(token(page, n[411])).toContainText(`13 · ${home ? opp : opp.toLowerCase()}`);
+  await expect(page.getByLabel("Show under each player")).toBeDisabled();
+  await expect(page.getByText("Points scored")).toBeVisible();
+  await expect(page.getByTestId("projected-points")).toHaveCount(0);
+
+  // Back in a planned gameweek the chosen metric returns.
+  await page.getByRole("button", { name: "Next gameweek" }).click();
+  await expect(token(page, n[411])).toContainText(/£\d+\.\dm/);
+});
+
+test("a stale past response without points is reloaded, never shown as the metric", async ({
+  page,
+  planner,
+}) => {
+  const n = await names(page);
+  const gw = planner.nextGw - 1;
+  const slots = [82, 8, 277, 114, 124, 154, 12, 368, 165, 411, 569, 302, 31, 565, 387];
+  const base = { gw, slots, captain: 12, vice: 154, chip: null, points: 40 };
+  let calls = 0;
+  await page.route("**/api/team/1/picks/*", (route) => {
+    calls++;
+    // The first answer is the old shape (no player points), like a copy cached before points existed.
+    if (calls === 1) return route.fulfill({ json: base });
+    const playerPoints = Object.fromEntries(slots.map((id) => [id, [{ fixture: 1, points: 9 }]]));
+    return route.fulfill({ json: { ...base, playerPoints } });
+  });
+
+  await page.getByLabel("Show under each player").selectOption({ label: "Price" });
+  await page.getByRole("button", { name: "Previous gameweek" }).click();
+  await expect(token(page, n[411])).toContainText("9");
+  await expect(token(page, n[411])).not.toContainText("£");
+  expect(calls).toBe(2);
+});

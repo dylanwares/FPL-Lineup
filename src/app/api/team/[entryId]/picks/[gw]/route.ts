@@ -1,9 +1,9 @@
 import { getRules } from "@/config/rules";
-import { getBootstrapSlim, getPicks } from "@/lib/fpl/api";
+import { getBootstrapSlim, getLivePoints, getPicks } from "@/lib/fpl/api";
 import { toPastPicks } from "@/lib/fpl/build-import";
 import { fplErrorResponse, parseEntryId } from "@/lib/fpl/errors";
 
-/** GET /api/team/{entryId}/picks/{gw}: the team actually picked in a past gameweek. */
+/** GET /api/team/{entryId}/picks/{gw}: the team actually picked in a past gameweek, and what each player scored. */
 export async function GET(_req: Request, ctx: { params: Promise<{ entryId: string; gw: string }> }) {
   const params = await ctx.params;
   const entryId = parseEntryId(params.entryId);
@@ -18,7 +18,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ entryId: strin
     if (!event || (!event.finished && !event.is_current)) {
       return Response.json({ error: "That gameweek hasn't started yet." }, { status: 404 });
     }
-    const picks = toPastPicks(gw, await getPicks(entryId, gw, event.finished));
+    const [raw, live] = await Promise.all([
+      getPicks(entryId, gw, event.finished),
+      getLivePoints(gw, event.finished),
+    ]);
+    const picks = toPastPicks(gw, raw, live);
     return Response.json(picks, {
       headers: { "cache-control": event.finished ? "private, max-age=86400" : "private, max-age=60" },
     });

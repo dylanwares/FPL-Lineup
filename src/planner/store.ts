@@ -295,9 +295,16 @@ export async function loadPast(gw: number) {
   if (!team || past[gw] === "loading" || (past[gw] && past[gw] !== "error")) return;
   set({ past: { ...get().past, [gw]: "loading" } });
   try {
-    const res = await fetch(`/api/team/${team.entryId}/picks/${gw}`);
+    const url = `/api/team/${team.entryId}/picks/${gw}`;
+    let res = await fetch(url);
     if (!res.ok) throw new Error(String(res.status));
-    const picks = (await res.json()) as PastPicks;
+    let picks = (await res.json()) as PastPicks;
+    // The browser may hold a response from before points were added (cached for a day): reload it.
+    if (!picks.playerPoints) {
+      res = await fetch(url, { cache: "reload" });
+      if (!res.ok) throw new Error(String(res.status));
+      picks = (await res.json()) as PastPicks;
+    }
     set({ past: { ...get().past, [gw]: picks } });
   } catch {
     set({ past: { ...get().past, [gw]: "error" } });

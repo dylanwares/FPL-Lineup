@@ -12,7 +12,8 @@ import { STARTERS } from "@/engine/types";
 import { PlannerSkeleton } from "./PlannerSkeleton";
 import { ProjectedPoints } from "./ProjectedPoints";
 import { useGwView } from "./hooks";
-import { metricPills, photoUrl, type Metric } from "./metrics";
+import { metricPills, pastPills, photoUrl, type Metric } from "./metrics";
+import type { FixturePoints } from "@/lib/fpl/types";
 import { engineContext, playerFlag } from "./model";
 import {
   canDrag,
@@ -24,6 +25,7 @@ import {
   stepGw,
   tapPlayer,
   usePlanner,
+  type PastState,
 } from "./store";
 
 type Role = "C" | "V" | undefined;
@@ -35,6 +37,8 @@ function tokenProps(
   role: Role,
   metric: Metric,
   photos: boolean,
+  /** Past gameweeks: what the player scored, which replaces the metric. */
+  scored: FixturePoints[] | undefined,
 ): Omit<PlayerTokenProps, "onClick"> {
   const player = data.playerById.get(id);
   const team = player && data.teamById.get(player.team);
@@ -44,7 +48,7 @@ function tokenProps(
       kit: { style: "plain", primary: "#666", secondary: "#fff", gk: "#666" },
       metrics: [],
     };
-  const { pills, blank } = metricPills(data, player, gw, metric);
+  const { pills, blank } = scored ? pastPills(data, player, scored) : metricPills(data, player, gw, metric);
   return {
     name: player.name,
     kit: team.kit,
@@ -55,6 +59,22 @@ function tokenProps(
     captain: role,
     flag: playerFlag(player),
   };
+}
+
+const NO_POINTS: FixturePoints[] = [];
+
+/**
+ * A player's points in a gameweek, or undefined for a planned one (which
+ * shows the chosen metric). A past gameweek never shows the metric: a player
+ * whose points aren't there (yet) gets a dash.
+ */
+function scoredIn(
+  past: PastState | undefined,
+  id: number,
+  isPast: boolean,
+): FixturePoints[] | undefined {
+  if (!isPast) return undefined;
+  return (typeof past === "object" && past.playerPoints?.[id]) || NO_POINTS;
 }
 
 /** One player on the pitch. Memoised on primitives, so an edit re-renders only the slots it touches. */
@@ -78,9 +98,10 @@ const PitchPlayer = memo(function PitchPlayer({
   const data = usePlanner((s) => s.data)!;
   const metric = usePlanner((s) => s.metric);
   const photos = usePlanner((s) => s.photos);
+  const scored = usePlanner((s) => scoredIn(s.past[gw], id, !!s.team && gw < s.team.planFromGw));
   const props = useMemo(
-    () => tokenProps(data, id, gw, role, metric, photos),
-    [data, id, gw, role, metric, photos],
+    () => tokenProps(data, id, gw, role, metric, photos, scored),
+    [data, id, gw, role, metric, photos, scored],
   );
   const onClick = useCallback(() => tapPlayer(id), [id]);
   return (
@@ -249,9 +270,10 @@ function DragGhost({ id, gw, role }: { id: number; gw: number; role: Role }) {
   const data = usePlanner((s) => s.data)!;
   const metric = usePlanner((s) => s.metric);
   const photos = usePlanner((s) => s.photos);
+  const scored = usePlanner((s) => scoredIn(s.past[gw], id, !!s.team && gw < s.team.planFromGw));
   const props = useMemo(
-    () => tokenProps(data, id, gw, role, metric, photos),
-    [data, id, gw, role, metric, photos],
+    () => tokenProps(data, id, gw, role, metric, photos, scored),
+    [data, id, gw, role, metric, photos, scored],
   );
   return (
     <div

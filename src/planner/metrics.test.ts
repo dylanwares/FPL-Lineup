@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeBootstrap } from "@/data/decode";
 import { BOOTSTRAP_FORMAT } from "@/data/format";
-import { metricPills, rateTier, xpOver } from "./metrics";
+import { metricPills, pastPills, rateTier, xpOver } from "./metrics";
 
 /**
  * Two teams over 4 gameweeks, 4 finished. GW1 single, GW2 double, GW3 blank, GW4 single.
@@ -91,5 +91,28 @@ describe("metricPills", () => {
 describe("rateTier", () => {
   it("maps points per gameweek onto five tiers", () => {
     expect([7, 5, 3.5, 2, 0.5].map(rateTier)).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe("pastPills", () => {
+  it("shows points and opponent per fixture, coloured by points", () => {
+    expect(pastPills(data, saka, [{ fixture: 1, points: 12 }])).toEqual({
+      pills: [{ label: "12 · BRE", difficulty: 1 }],
+      blank: false,
+    });
+    // Away at Brentford, then home to them: short labels in a double.
+    expect(
+      pastPills(data, saka, [
+        { fixture: 3, points: 2 },
+        { fixture: 2, points: -1 },
+      ]).pills,
+    ).toEqual([
+      { label: "2 bre", difficulty: 4 },
+      { label: "-1 BRE", difficulty: 5 },
+    ]);
+  });
+
+  it("greys out a blank", () => {
+    expect(pastPills(data, saka, [])).toEqual({ pills: [], blank: true });
   });
 });

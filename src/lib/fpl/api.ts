@@ -1,6 +1,14 @@
 import { cacheLife } from "next/cache";
 import { fetchJson } from "@/lib/fetch-json";
-import type { FplBootstrapSlim, FplEntry, FplHistory, FplPicks, FplTransfer } from "./types";
+import type {
+  FixturePoints,
+  FplBootstrapSlim,
+  FplEntry,
+  FplHistory,
+  FplLive,
+  FplPicks,
+  FplTransfer,
+} from "./types";
 
 /**
  * Cached server-side access to the FPL API. Entry data is cached for five
@@ -64,4 +72,19 @@ export async function getPicks(entryId: number, gw: number, finished: boolean): 
   if (finished) cacheLife("max");
   else cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
   return fetchJson<FplPicks>(`${BASE}/entry/${entryId}/event/${gw}/picks/`, OPTS);
+}
+
+/** Every player's points in a gameweek, per fixture. Finished gameweeks never change. */
+export async function getLivePoints(gw: number, finished: boolean): Promise<Record<number, FixturePoints[]>> {
+  "use cache";
+  if (finished) cacheLife("max");
+  else cacheLife({ stale: 60, revalidate: 60, expire: 3600 });
+  const raw = await fetchJson<FplLive>(`${BASE}/event/${gw}/live/`, OPTS);
+  // Keep per-fixture totals only; the full response is ~0.5 MB.
+  return Object.fromEntries(
+    raw.elements.map((e) => [
+      e.id,
+      e.explain.map((f) => ({ fixture: f.fixture, points: f.stats.reduce((sum, s) => sum + s.points, 0) })),
+    ]),
+  );
 }

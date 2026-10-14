@@ -1,6 +1,7 @@
 import type { ChipName, SeasonRules } from "@/config/rules";
 import { nextFreeTransfers, sellingPrice } from "@/engine/money";
 import type {
+  FixturePoints,
   FplBootstrapSlim,
   FplEntry,
   FplHistory,
@@ -39,9 +40,11 @@ export function picksToSlots(picks: FplPicks["picks"]): Pick<PastPicks, "slots" 
   };
 }
 
-export function toPastPicks(gw: number, raw: FplPicks): PastPicks {
+export function toPastPicks(gw: number, raw: FplPicks, live: Record<number, FixturePoints[]>): PastPicks {
   const chip = raw.active_chip && CHIPS.has(raw.active_chip) ? (raw.active_chip as ChipName) : null;
-  return { gw, ...picksToSlots(raw.picks), chip, points: raw.entry_history.points };
+  const picks = picksToSlots(raw.picks);
+  const playerPoints = Object.fromEntries(picks.slots.map((id) => [id, live[id] ?? []]));
+  return { gw, ...picks, chip, points: raw.entry_history.points, playerPoints };
 }
 
 /**

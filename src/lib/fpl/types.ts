@@ -78,4 +78,16 @@ export interface PastPicks {
   vice: number;
   chip: ChipName | null;
   points: number;
+  /** Points each picked player scored, per fixture (two in a double, none in a blank). */
+  playerPoints: Record<number, FixturePoints[]>;
+}
+
+export interface FixturePoints {
+  fixture: number;
+  points: number;
+}
+
+/** /event/{gw}/live/, trimmed to what the past view needs. */
+export interface FplLive {
+  elements: { id: number; explain: { fixture: number; stats: { points: number }[] }[] }[];
 }

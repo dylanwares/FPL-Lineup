@@ -1,5 +1,6 @@
 import type { TokenMetric } from "@/components/pitch/PlayerToken";
 import { fixturesFor, xpFor, type GameData, type Player } from "@/data/model";
+import type { FixturePoints } from "@/lib/fpl/types";
 import { fixtureMetrics, formatPrice } from "./model";
 
 /** What the pill under each player shows. */
@@ -97,6 +98,27 @@ export function metricPills(data: GameData, player: Player, gw: number, metric: 
     case "points":
       return pill(String(player.totalPoints), rateTier(player.totalPoints / Math.max(1, finishedGws(data))));
   }
+}
+
+/**
+ * A past gameweek's pill(s): what the player scored and who against, one per
+ * fixture ("12 · BRE" at home, "3 · bre" away), coloured by the points. The
+ * metric dropdown doesn't apply: past gameweeks always show this.
+ */
+export function pastPills(data: GameData, player: Player, fixtures: FixturePoints[]): MetricPills {
+  if (fixtures.length === 0) return { pills: [], blank: true };
+  const double = fixtures.length > 1;
+  return {
+    pills: fixtures.map(({ fixture, points }) => {
+      const f = data.fixtures.find((x) => x.id === fixture);
+      const home = f?.home === player.team;
+      const opp = f && data.teamById.get(home ? f.away : f.home);
+      const short = opp ? (home ? opp.short : opp.short.toLowerCase()) : "";
+      const label = !short ? String(points) : double ? `${points} ${short}` : `${points} · ${short}`;
+      return { label, difficulty: rateTier(points) };
+    }),
+    blank: false,
+  };
 }
 
 /** Official player photo (77×80, ~12 KB) by the player's stable code. */
