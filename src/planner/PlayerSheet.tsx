@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Kit } from "@/components/Kit";
 import { FlagIcon } from "@/components/ui/Badges";
 import { FdrPill } from "@/components/ui/FdrPill";
-import { Close, Swap, Transfer, Trash } from "@/components/ui/Icons";
+import { Close, Swap, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { xpFor } from "@/data/model";
 import { sellingPrice } from "@/engine/money";
@@ -13,6 +13,9 @@ import { useGwView } from "./hooks";
 import { playerList } from "./lazy-parts";
 import { engineContext, fixtureMetrics, formatPrice, playerFlag } from "./model";
 import { closeSheet, removePlayer, setCaptain, setVice, startMoveFor, usePlanner } from "./store";
+
+/** The Sub / Transfer / Remove row: slightly smaller text and padding so a bigger icon fits three across. */
+const ACTION = "justify-center gap-1.5! px-2! text-[13px]!";
 
 const POSITION_NAMES = { GKP: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
 
@@ -132,27 +135,23 @@ function Sheet({ id }: { id: number }) {
         {state && owned && (
           <div className="mt-5 flex flex-col gap-2">
             <div className="grid grid-cols-3 gap-2">
-              <PillButton
-                className="justify-center"
-                disabled={!canSub}
-                onClick={() => startMoveFor(id, "sub")}
-              >
-                <Swap />
-                Substitute
+              <PillButton className={ACTION} disabled={!canSub} onClick={() => startMoveFor(id, "sub")}>
+                <Swap className="size-5" />
+                Sub
               </PillButton>
               <PillButton
-                className="justify-center"
+                className={ACTION}
                 onPointerEnter={() => void playerList.preload().catch(() => {})}
                 onClick={() => {
                   void playerList.preload().catch(() => {});
                   startMoveFor(id, "transfer");
                 }}
               >
-                <Transfer />
+                <Transfer className="size-5" />
                 Transfer
               </PillButton>
-              <PillButton className="justify-center" onClick={() => removePlayer(id)}>
-                <Trash />
+              <PillButton className={ACTION} onClick={() => removePlayer(id)}>
+                <Close className="size-5" />
                 Remove
               </PillButton>
             </div>

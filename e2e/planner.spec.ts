@@ -139,9 +139,9 @@ test("the player sheet starts a one-off sub or transfer for that player", async 
   const sub = page.getByRole("button", { name: "Sub", exact: true });
   const transfer = page.getByRole("button", { name: "Transfer", exact: true });
 
-  // Substitute: the player is pre-selected, one tap swaps, then the mode switches off.
+  // Sub: the player is pre-selected, one tap swaps, then the mode switches off.
   await token(page, n[12]).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Substitute" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Sub", exact: true }).click();
   await expect(token(page, n[12])).toHaveAttribute("data-selected", "true");
   await expect(page.getByRole("status").filter({ hasText: "swap with" })).toBeVisible();
   await token(page, n[565]).click();
