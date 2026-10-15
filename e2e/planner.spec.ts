@@ -226,6 +226,48 @@ test("press, hold and drag a player onto another to sub them", async ({ page, pl
   await expect(page.getByRole("dialog")).toBeHidden(); // releasing didn't also tap the player
 });
 
+test("swiping the pitch follows the finger, then changes gameweek or springs back", async ({
+  page,
+  planner,
+}) => {
+  await page.setViewportSize({ width: 412, height: 1200 });
+  const n = await names(page);
+  const area = page.locator(".touch-pan-y");
+  await page.evaluate(() => scrollTo(0, 100));
+  const box = (await token(page, n[124]).boundingBox())!;
+  const y = box.y + box.height / 2;
+  const x0 = 300;
+  /** Presses on the pitch and drags sideways by `dx`; returns a function that lets go. */
+  const swipe = async (dx: number, steps = 8) => {
+    await page.mouse.move(x0, y);
+    await page.mouse.down();
+    await page.mouse.move(x0 + dx, y, { steps });
+    return () => page.mouse.up();
+  };
+
+  // Mid-swipe the pitch has moved with the finger; a short, slow swipe springs back.
+  let release = await swipe(-60, 20);
+  await expect(area).toHaveAttribute("style", /translate3d\(-60px/);
+  await page.waitForTimeout(150); // held still: not a flick
+  await release();
+  await expect(gwNumber(page)).toHaveText(String(planner.nextGw));
+  await expect(area).not.toHaveAttribute("style", /translate/);
+
+  // Past a quarter of the width: the next gameweek, and the release didn't open a player sheet.
+  release = await swipe(-200);
+  await release();
+  await expect(gwNumber(page)).toHaveText(String(planner.nextGw + 1));
+  await expect(area).not.toHaveAttribute("style", /translate/);
+  await expect(page.getByRole("dialog")).toBeHidden();
+  // The pitch sliding past the screen's edge mustn't widen the page and lose the scroll position.
+  expect(await page.evaluate(() => [scrollY, innerWidth])).toEqual([100, 412]);
+
+  // And back the other way.
+  release = await swipe(200);
+  await release();
+  await expect(gwNumber(page)).toHaveText(String(planner.nextGw));
+});
+
 test("history lists this gameweek's changes and can remove one", async ({ page, planner }) => {
   const n = await names(page);
   const history = page.getByRole("region", { name: `History · GW${planner.nextGw}` });

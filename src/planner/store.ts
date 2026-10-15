@@ -291,6 +291,14 @@ export function stepGw(delta: number) {
   setGw(get().gw + delta);
 }
 
+/** Whether there is a gameweek `delta` away from the one on screen to step to. */
+export function canStepGw(delta: number): boolean {
+  const { team, data, gw } = get();
+  if (!team || !data) return false;
+  const next = gw + delta;
+  return next >= team.startedGw && next <= data.events.length;
+}
+
 /** Fetches the picks for a past gameweek once (read-only view). */
 export async function loadPast(gw: number) {
   const { team, past } = get();
