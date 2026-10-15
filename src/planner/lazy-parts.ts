@@ -11,6 +11,7 @@ export const playerList = lazyComponent(() => import("./PlayerList").then((m) =>
 export const planHistory = lazyComponent(() => import("./PlanHistory").then((m) => m.PlanHistory));
 /** Toasts only follow an edit, by which time this has loaded. */
 export const toaster = lazyComponent(() => import("./Toaster").then((m) => m.Toaster));
+export const shareSheet = lazyComponent(() => import("@/share/ShareSheet").then((m) => m.default));
 export const planMenus = lazyComponent(() => import("./PlanMenus").then((m) => m.PlanMenus));
 
 export function preloadOnIdle(): () => void {

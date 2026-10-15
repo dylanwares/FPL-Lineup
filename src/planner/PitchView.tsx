@@ -17,11 +17,11 @@ import type { FixturePoints } from "@/lib/fpl/types";
 import { engineContext, playerFlag } from "./model";
 import { loadPast, tapPlayer, usePlanner, type PastState } from "./store";
 
-type Role = "C" | "V" | undefined;
+export type Role = "C" | "V" | undefined;
 
 const NO_KIT: PlayerTokenProps["kit"] = { style: "plain", primary: "#666", secondary: "#fff", gk: "#666" };
 
-function tokenProps(
+export function tokenProps(
   data: GameData,
   id: number,
   gw: number,
@@ -64,7 +64,11 @@ const NO_POINTS: FixturePoints[] = [];
  * shows the chosen metric). A past gameweek never shows the metric: a player
  * whose points aren't there (yet) gets a dash.
  */
-function scoredIn(past: PastState | undefined, id: number, isPast: boolean): FixturePoints[] | undefined {
+export function scoredIn(
+  past: PastState | undefined,
+  id: number,
+  isPast: boolean,
+): FixturePoints[] | undefined {
   if (!isPast) return undefined;
   return (typeof past === "object" && past.playerPoints?.[id]) || NO_POINTS;
 }

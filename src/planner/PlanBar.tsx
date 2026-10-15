@@ -1,19 +1,23 @@
 "use client";
 
-import { ChevronDown, More, Plus } from "@/components/ui/Icons";
+import { useState } from "react";
+import { ChevronDown, More, Plus, Share } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
-import { planMenus } from "./lazy-parts";
+import { planMenus, shareSheet } from "./lazy-parts";
 import { openPlanUi, usePlanner } from "./store";
 
 /**
- * New plan, the plan dropdown, and the ⋯ menu (plan actions and Refresh from
- * FPL). Changing FPL team lives in the header's account menu.
+ * New plan, the plan dropdown, Share (the lineup as an image) and the ⋯ menu
+ * (plan actions and Refresh from FPL). Changing FPL team lives in the
+ * header's account menu.
  */
 export function PlanBar() {
   const planName = usePlanner((s) => s.plan?.name);
   const teamName = usePlanner((s) => s.team?.teamName);
   const planUi = usePlanner((s) => s.planUi);
   const refreshError = usePlanner((s) => s.refreshError);
+  const [sharing, setSharing] = useState(false);
+  const preloadShare = () => void shareSheet.preload().catch(() => {});
 
   return (
     <div className="relative flex flex-col gap-1.5">
@@ -38,6 +42,17 @@ export function PlanBar() {
         </button>
         <PillButton
           size="icon"
+          aria-label="Share lineup"
+          title="Share lineup"
+          onPointerEnter={preloadShare}
+          onPointerDown={preloadShare}
+          onFocus={preloadShare}
+          onClick={() => setSharing(true)}
+        >
+          <Share className="size-4" />
+        </PillButton>
+        <PillButton
+          size="icon"
           aria-label="More options"
           title="More options"
           aria-haspopup="menu"
@@ -48,6 +63,7 @@ export function PlanBar() {
         </PillButton>
       </div>
       {planUi && <planMenus.Lazy />}
+      {sharing && <shareSheet.Lazy onClose={() => setSharing(false)} />}
       {refreshError && (
         <p role="alert" className="px-1 text-xs text-injured">
           Couldn’t refresh your team: {refreshError}

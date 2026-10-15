@@ -66,6 +66,24 @@ function AdBoard() {
   );
 }
 
+/**
+ * The markings on a 400×470 half pitch, goal at the top (shared with the
+ * share image's canvas): touchlines and goal line, halfway line, centre
+ * circle, goal, six-yard box, penalty box, arc and corner arcs. The penalty
+ * spot is drawn separately.
+ */
+export const PITCH_LINES = [
+  "M12 470V8h376v462",
+  "M12 458h376",
+  "M142 458a58 58 0 1 0 116 0a58 58 0 1 0-116 0",
+  "M172 2h56v6h-56Z",
+  "M152 8h96v30h-96Z",
+  "M92 8h216v90h-216Z",
+  "M162 98a46 46 0 0 0 76 0",
+  "M12 18a10 10 0 0 0 10-10M378 8a10 10 0 0 0 10 10",
+];
+export const PENALTY_SPOT = { x: 200, y: 70, r: 2.2 };
+
 function PitchLines() {
   return (
     <svg
@@ -76,18 +94,16 @@ function PitchLines() {
       strokeWidth="2"
       aria-hidden="true"
     >
-      {/* touchlines + goal line, halfway line, centre circle */}
-      <path d="M12 470V8h376v462" />
-      <path d="M12 458h376" />
-      <circle cx="200" cy="458" r="58" />
-      {/* goal, six-yard box, penalty box, spot and arc */}
-      <rect x="172" y="2" width="56" height="6" />
-      <rect x="152" y="8" width="96" height="30" />
-      <rect x="92" y="8" width="216" height="90" />
-      <circle cx="200" cy="70" r="2.2" fill="var(--pitch-line)" stroke="none" />
-      <path d="M162 98a46 46 0 0 0 76 0" />
-      {/* corner arcs */}
-      <path d="M12 18a10 10 0 0 0 10-10M378 8a10 10 0 0 0 10 10" />
+      {PITCH_LINES.map((d) => (
+        <path key={d} d={d} />
+      ))}
+      <circle
+        cx={PENALTY_SPOT.x}
+        cy={PENALTY_SPOT.y}
+        r={PENALTY_SPOT.r}
+        fill="var(--pitch-line)"
+        stroke="none"
+      />
     </svg>
   );
 }
