@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Logout } from "@/components/ui/Icons";
+import { Download, Logout } from "@/components/ui/Icons";
 import { disconnect, usePlanner } from "@/planner/store";
+import { startInstall, useInstallMode } from "./pwa/install";
 
-/** The account menu's contents: the connected FPL team and Change FPL team. */
+const ITEM =
+  "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm outline-none hover:bg-[var(--line)] focus-visible:bg-[var(--line)]";
+
+/** The account menu's contents: the connected FPL team, Change FPL team, and Install app. */
 export function AccountPanel({ close }: { close: () => void }) {
   const team = usePlanner((s) => s.team);
+  const installable = useInstallMode() !== null;
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,7 +39,7 @@ export function AccountPanel({ close }: { close: () => void }) {
               <button
                 type="button"
                 role="menuitem"
-                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm outline-none hover:bg-[var(--line)] focus-visible:bg-[var(--line)]"
+                className={ITEM}
                 onClick={() => {
                   close();
                   disconnect();
@@ -47,6 +52,19 @@ export function AccountPanel({ close }: { close: () => void }) {
             <p className="px-3 py-2.5 text-sm text-muted">
               Enter your FPL team ID to start planning. Accounts to sync plans are coming soon.
             </p>
+          )}
+          {installable && (
+            <button
+              type="button"
+              role="menuitem"
+              className={ITEM}
+              onClick={() => {
+                close();
+                void startInstall();
+              }}
+            >
+              <Download className="size-4 text-muted" /> Install app
+            </button>
           )}
         </div>
       </div>

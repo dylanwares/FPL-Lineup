@@ -9,6 +9,7 @@ export function ThemeToggle() {
     const root = document.documentElement;
     const next = root.dataset.theme === "light" ? "dark" : "light";
     root.dataset.theme = next;
+    setThemeColor(next);
     try {
       localStorage.setItem("theme", next);
     } catch {
@@ -39,4 +40,11 @@ export function ThemeToggle() {
 }
 
 /** Runs before first paint so the stored theme never flashes. */
-export const themeScript = `try{if(localStorage.getItem("theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}`;
+/** The browser chrome and status bar colour for each theme (the page background). */
+const THEME_COLORS = { dark: "#07040d", light: "#f1f2f7" };
+
+function setThemeColor(theme: "dark" | "light") {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[theme]);
+}
+
+export const themeScript = `try{if(localStorage.getItem("theme")==="light"){document.documentElement.dataset.theme="light";addEventListener("DOMContentLoaded",function(){var m=document.querySelector('meta[name="theme-color"]');m&&m.setAttribute("content","${THEME_COLORS.light}")})}}catch(e){}`;

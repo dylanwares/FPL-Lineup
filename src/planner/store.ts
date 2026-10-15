@@ -158,7 +158,13 @@ export function commitPlan(next: Plan) {
 /* ---------------- Network ---------------- */
 
 async function fetchTeam(entryId: number): Promise<TeamImport> {
-  const res = await fetch(`/api/team/${entryId}`);
+  const res = await fetch(`/api/team/${entryId}`).catch(() => {
+    throw new Error(
+      navigator.onLine
+        ? "Couldn't reach FPL Lineup. Try again."
+        : "You're offline. Your plans are saved on this device.",
+    );
+  });
   const body = (await res.json().catch(() => ({}))) as TeamImport & { error?: string };
   if (!res.ok) throw new Error(body.error ?? "Couldn't load that team.");
   return body;

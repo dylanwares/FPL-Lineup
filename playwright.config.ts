@@ -21,6 +21,8 @@ export default defineConfig({
   use: {
     baseURL: external ?? `http://localhost:${port}`,
     trace: "retain-on-failure",
+    // A service worker's own fetches skip page.route mocks; the offline test opts back in.
+    serviceWorkers: "block",
   },
   projects: [
     {

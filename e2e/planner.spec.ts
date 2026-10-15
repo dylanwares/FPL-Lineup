@@ -477,7 +477,7 @@ test("metric dropdown changes every pill and is remembered; photos fall back to 
 
   // Photos: one loads, one fails and shows the kit instead.
   let first = true;
-  await page.route("**/resources.premierleague.com/**", (route) => {
+  await page.route("**/api/photo/**", (route) => {
     if (first) {
       first = false;
       return route.fulfill({
@@ -495,7 +495,7 @@ test("metric dropdown changes every pill and is remembered; photos fall back to 
   // The 14 that fail are swapped for their kits, leaving the one photo that loaded.
   const photos = page.locator("[data-player] img");
   await expect(photos).toHaveCount(1);
-  await expect(photos).toHaveAttribute("src", /premierleague25.*\.png$/);
+  await expect(photos).toHaveAttribute("src", /^\/api\/photo\/\d+\?size=small$/);
   await expect(photos).toBeVisible();
 });
 

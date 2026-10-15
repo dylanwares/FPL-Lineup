@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Unbounded } from "next/font/google";
 import { Header } from "@/components/Header";
 import { themeScript } from "@/components/ThemeToggle";
+import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { WebVitals } from "@/components/WebVitals";
 import "./globals.css";
 
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
   },
   description:
     "Plan your Fantasy Premier League team for every gameweek: transfers, subs, chips and projected points, instantly.",
+  applicationName: "FPL Lineup",
+  // Installed on iOS: full screen under a translucent status bar (the header pads for it).
+  appleWebApp: { capable: true, title: "FPL Lineup", statusBarStyle: "black-translucent" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -47,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex min-h-full flex-col pb-[calc(env(safe-area-inset-bottom)+5rem)]">
         <WebVitals />
+        <PwaSetup />
         <Header />
         <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4">{children}</main>
         <footer className="mx-auto w-full max-w-lg px-4 py-8 text-center text-[11px] leading-relaxed text-muted">

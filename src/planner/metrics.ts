@@ -123,5 +123,6 @@ export function pastPills(data: GameData, player: Player, fixtures: FixturePoint
 
 /** Official player photo (77×80, ~12 KB) by the player's stable code. */
 export function photoUrl(player: Player): string {
-  return `https://resources.premierleague.com/premierleague25/photos/players/40x40/${player.code}.png`;
+  // Through our origin, so the service worker can keep photos for offline use.
+  return `/api/photo/${player.code}?size=small`;
 }
