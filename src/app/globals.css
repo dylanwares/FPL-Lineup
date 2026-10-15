@@ -42,6 +42,14 @@
   --glass-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
   --glass-blur: blur(18px) saturate(140%);
 
+  /* Tab bar: clear glass that tints what's behind it */
+  --tab-fill: rgb(28 24 40 / 0.42);
+  --tab-rim: rgb(255 255 255 / 0.3);
+  --tab-sheen: rgb(255 255 255 / 0.16);
+  --tab-shadow: 0 10px 30px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.3);
+  --tab-lens: rgb(255 255 255 / 0.11);
+  --tab-lens-rim: rgb(255 255 255 / 0.4);
+
   /* Ambient background glows */
   --ambient-1: rgb(46 230 166 / 0.07);
   --ambient-2: rgb(139 124 246 / 0.08);
@@ -94,6 +102,13 @@
   --glass-edge-bottom: rgb(20 16 31 / 0.07);
   --glass-highlight: rgb(255 255 255 / 0.7);
   --glass-shadow: 0 6px 20px rgb(30 20 60 / 0.07);
+
+  --tab-fill: rgb(255 255 255 / 0.5);
+  --tab-rim: rgb(255 255 255 / 0.95);
+  --tab-sheen: rgb(255 255 255 / 0.55);
+  --tab-shadow: 0 10px 30px rgb(30 20 60 / 0.14), 0 1px 3px rgb(30 20 60 / 0.08);
+  --tab-lens: rgb(20 16 31 / 0.07);
+  --tab-lens-rim: rgb(255 255 255 / 0.9);
 
   --ambient-1: rgb(46 230 166 / 0.14);
   --ambient-2: rgb(139 124 246 / 0.12);
@@ -274,6 +289,58 @@ body::after {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* ---------- Tab bar (iOS 26 liquid glass) ---------- */
+
+/*
+ * One backdrop-filter for the capsule; everything else is gradients and
+ * inset shadows: a bright rim where light catches the top edge, a fainter one
+ * underneath, and a soft specular sheen across the upper half.
+ */
+.tabbar {
+  background: radial-gradient(120% 90% at 30% -30%, var(--tab-sheen), transparent 60%), var(--tab-fill);
+  -webkit-backdrop-filter: blur(14px) saturate(190%) brightness(1.08);
+  backdrop-filter: blur(14px) saturate(190%) brightness(1.08);
+  box-shadow:
+    inset 0 1px 0.5px var(--tab-rim),
+    inset 0 -1px 1px rgb(255 255 255 / 0.08),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.12),
+    var(--tab-shadow);
+  transition: scale 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+/* Pressing anywhere on the bar swells it slightly, like iOS. */
+.tabbar:has(.tabbar-tab:active) {
+  scale: 1.03;
+}
+
+.tabbar-lens {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.08), transparent 70%), var(--tab-lens);
+  box-shadow:
+    inset 0 1px 1px var(--tab-lens-rim),
+    inset 0 -1px 1.5px rgb(0 0 0 / 0.12),
+    0 2px 10px rgb(0 0 0 / 0.12);
+  transition: scale 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.tabbar:has(.tabbar-tab:active) .tabbar-lens {
+  scale: 1.08;
+}
+
+.tabbar-tab {
+  color: var(--muted);
+  transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabbar-tab[aria-current="page"] {
+  color: var(--mint);
+}
+
+.tabbar-tab:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: -2px;
 }
 
 /* ---------- Fixture difficulty ---------- */

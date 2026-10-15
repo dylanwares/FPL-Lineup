@@ -30,6 +30,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   // Matches the dark background (the default theme).
   themeColor: "#07040d",
+  // Edge to edge, so the tab bar can float over the home indicator's safe area.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -43,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col pb-[calc(env(safe-area-inset-bottom)+5rem)]">
         <WebVitals />
         <Header />
         <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4">{children}</main>

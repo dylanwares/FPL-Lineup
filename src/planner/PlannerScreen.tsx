@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { currentTab } from "@/components/nav";
 import { ChipsRow } from "./ChipsRow";
 import { GwNav } from "./GwNav";
 import { MetricRow } from "./MetricRow";
@@ -16,7 +17,7 @@ export function PlannerScreen() {
   // Ignored while typing or with a sheet, menu or dialog open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || currentTab() !== "planner") return;
       if (e.target instanceof HTMLElement && e.target.closest("input, textarea, select")) return;
       const { sheetPlayer, mode, selected, planUi } = usePlanner.getState();
       if (sheetPlayer != null || planUi !== null || (mode === "transfer" && selected !== null)) return;

@@ -1,5 +1,5 @@
-import { PlannerApp } from "@/planner/PlannerApp";
+import { AppShell } from "@/components/AppShell";
 
 export default function PlannerPage() {
-  return <PlannerApp />;
+  return <AppShell />;
 }
