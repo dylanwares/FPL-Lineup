@@ -1,7 +1,7 @@
 import type { GameData, Player } from "@/data/model";
 import { xpFor } from "@/data/model";
 import { sellingPrice } from "@/engine/money";
-import type { GwState } from "@/engine/types";
+import { isEmptySlot, type GwState } from "@/engine/types";
 
 export type SortKey = "xp" | "price" | "form" | "points" | "selected";
 
@@ -72,12 +72,13 @@ export function sortValue(data: GameData, player: Player, gw: number, sort: Sort
 
 /** Money available for a replacement: the bank plus the outgoing player's selling price. */
 export function budgetFor(data: GameData, state: GwState, out: number): number {
+  if (isEmptySlot(out)) return state.bank;
   const price = data.playerById.get(out)?.price ?? 0;
   return state.bank + sellingPrice(state.purchase[out] ?? price, price);
 }
 
 /**
- * Replacements for `out`: same position, not already in the squad, filtered
+ * Replacements for `out` (a player, or an empty slot to fill): same position, not already in the squad, filtered
  * and sorted (best first). Players who can't be afforded or would be a fourth
  * from one club are kept but carry a reason, so users can still plan a sequence.
  */
@@ -89,7 +90,7 @@ export function candidatesFor(
   filters: CandidateFilters,
   maxPerClub: number,
 ): Candidate[] {
-  const outPlayer = data.playerById.get(out);
+  const outPlayer = data.playerById.get(Math.abs(out));
   if (!outPlayer) return [];
   const budget = budgetFor(data, state, out);
   const owned = new Set(state.slots);

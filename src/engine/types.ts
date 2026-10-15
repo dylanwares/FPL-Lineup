@@ -6,6 +6,13 @@ export type Slots = number[];
 export const STARTERS = 11;
 export const BENCH_GK_SLOT = 11;
 
+/**
+ * A removed player leaves an empty slot until someone is bought into it. The
+ * slot holds the removed player's id negated, so it keeps their position.
+ */
+export const emptySlot = (player: number) => -player;
+export const isEmptySlot = (id: number) => id < 0;
+
 export interface ChipUse {
   name: ChipName;
   gw: number;
@@ -28,6 +35,8 @@ export interface Snapshot {
 
 export type Move =
   | { type: "transfer"; gw: number; out: number; in: number }
+  /** Sells a player without a replacement, leaving an empty slot. */
+  | { type: "remove"; gw: number; player: number }
   | { type: "sub"; gw: number; a: number; b: number }
   | { type: "captain"; gw: number; player: number }
   | { type: "vice"; gw: number; player: number }
@@ -75,6 +84,7 @@ export interface GwState {
 /** What the engine needs to know about players; built once from the game data. */
 export interface EngineContext {
   rules: SeasonRules;
+  /** An empty slot (negative id) has the position of the player removed from it. */
   position(id: number): Position;
   team(id: number): number;
   /** Current price in tenths of £1m (future price changes are not modelled). */

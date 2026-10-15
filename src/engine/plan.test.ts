@@ -260,3 +260,55 @@ describe("editing", () => {
     expect(resetGw(plan, 7).moves).toEqual([{ type: "transfer", gw: 8, out: 4, in: 19 }]);
   });
 });
+
+describe("removing players", () => {
+  it("sells the player into the bank and leaves an empty slot", () => {
+    const r = run(withMoves([{ type: "remove", gw: 7, player: 3 }]));
+    const gw7 = stateAt(r, 7)!;
+    expect(gw7.slots[1]).toBe(-3);
+    expect(gw7.bank).toBe(10 + PRICES[3]);
+    expect(gw7.purchase[3]).toBeUndefined();
+    expect(gw7).toMatchObject({ transfers: 0, cost: 0, sold: [3], bought: [], warnings: [] });
+    expect(stateAt(r, 9)!.slots[1]).toBe(-3);
+  });
+
+  it("sells at the selling price", () => {
+    const risen = testContext({ prices: { 3: 60 } });
+    const r = computePlan(withMoves([{ type: "remove", gw: 7, player: 3 }]), risen);
+    expect(stateAt(r, 7)!.bank).toBe(10 + 56);
+  });
+
+  it("fills the empty slot with a transfer later, which counts as one", () => {
+    const r = run(
+      withMoves([
+        { type: "remove", gw: 7, player: 3 },
+        { type: "transfer", gw: 8, out: -3, in: 18 },
+      ]),
+    );
+    const gw8 = stateAt(r, 8)!;
+    expect(gw8.slots[1]).toBe(18);
+    expect(gw8.bank).toBe(10 + PRICES[3] - PRICES[18]);
+    expect(gw8).toMatchObject({ transfers: 1, sold: [], bought: [18] });
+  });
+
+  it("passes the armband on via the empty slot", () => {
+    const r = run(
+      withMoves([
+        { type: "remove", gw: 7, player: 13 },
+        { type: "transfer", gw: 7, out: -13, in: 25 },
+      ]),
+    );
+    expect(stateAt(r, 7)!.captain).toBe(25);
+  });
+
+  it("rejects removing a player who isn't in the squad, or an empty slot", () => {
+    const r = run(
+      withMoves([
+        { type: "remove", gw: 7, player: 18 },
+        { type: "remove", gw: 7, player: 3 },
+        { type: "remove", gw: 7, player: -3 },
+      ]),
+    );
+    expect(stateAt(r, 7)!.warnings.filter((w) => w.kind === "invalid-move")).toHaveLength(2);
+  });
+});

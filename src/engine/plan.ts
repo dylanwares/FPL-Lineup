@@ -2,7 +2,7 @@ import { chipAvailability } from "./chips";
 import { FREE_TRANSFER_CHIPS, nextFreeTransfers, sellingPrice, transferCost } from "./money";
 import { canSwap, clubCounts, isStarter } from "./squad";
 import type { ChipUse, EngineContext, GwState, Move, Plan, Slots, Warning } from "./types";
-import { STARTERS } from "./types";
+import { emptySlot, isEmptySlot, STARTERS } from "./types";
 
 /** What one gameweek starts from: the previous gameweek's end (or the snapshot). */
 export interface Carry {
@@ -50,6 +50,7 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
       case "transfer": {
         const i = slots.indexOf(move.out);
         if (i < 0) invalid(move, "Player is not in the squad");
+        else if (isEmptySlot(move.in)) invalid(move, "Not a player");
         else if (slots.includes(move.in)) invalid(move, "Player is already in the squad");
         else if (ctx.position(move.in) !== ctx.position(move.out)) invalid(move, "Positions differ");
         else {
@@ -57,6 +58,19 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
           slots[i] = move.in;
           if (captain === move.out) captain = move.in;
           if (vice === move.out) vice = move.in;
+        }
+        break;
+      }
+      case "remove": {
+        const i = slots.indexOf(move.player);
+        const empty = emptySlot(move.player);
+        if (i < 0 || isEmptySlot(move.player)) invalid(move, "Player is not in the squad");
+        else if (slots.includes(empty)) invalid(move, "Player was already removed from another slot");
+        else {
+          // The armband stays with the empty slot and passes to whoever is bought into it.
+          slots[i] = empty;
+          if (captain === move.player) captain = empty;
+          if (vice === move.player) vice = empty;
         }
         break;
       }
@@ -83,7 +97,7 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
       }
       case "captain":
       case "vice": {
-        if (!isStarter(slots, move.player)) {
+        if (!isStarter(slots, move.player) || isEmptySlot(move.player)) {
           invalid(move, "Only starters can wear the armband");
           break;
         }
@@ -103,8 +117,9 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
   // once and buying back a player sold this week cancels both moves.
   const startSet = new Set(start.slots);
   const endSet = new Set(slots);
-  const sold = start.slots.filter((id) => !endSet.has(id));
-  const bought = slots.filter((id) => !startSet.has(id));
+  // Empty slots are neither sold nor bought: removing sells, filling buys.
+  const sold = start.slots.filter((id) => !endSet.has(id) && !isEmptySlot(id));
+  const bought = slots.filter((id) => !startSet.has(id) && !isEmptySlot(id));
 
   let bank = start.bank;
   const purchase = { ...start.purchase };

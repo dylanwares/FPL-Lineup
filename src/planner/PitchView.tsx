@@ -8,7 +8,7 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { PillButton } from "@/components/ui/PillButton";
 import type { GameData } from "@/data/model";
 import { canSwap, formationRows } from "@/engine/squad";
-import { STARTERS } from "@/engine/types";
+import { isEmptySlot, STARTERS } from "@/engine/types";
 import { PlannerSkeleton } from "./PlannerSkeleton";
 import { ProjectedPoints } from "./ProjectedPoints";
 import { useGwView } from "./hooks";
@@ -30,6 +30,8 @@ import {
 
 type Role = "C" | "V" | undefined;
 
+const NO_KIT: PlayerTokenProps["kit"] = { style: "plain", primary: "#666", secondary: "#fff", gk: "#666" };
+
 function tokenProps(
   data: GameData,
   id: number,
@@ -40,14 +42,19 @@ function tokenProps(
   /** Past gameweeks: what the player scored, which replaces the metric. */
   scored: FixturePoints[] | undefined,
 ): Omit<PlayerTokenProps, "onClick"> {
+  if (isEmptySlot(id)) {
+    const pos = data.playerById.get(-id)?.pos ?? "MID";
+    return {
+      name: "Empty",
+      kit: NO_KIT,
+      metrics: [{ label: pos, difficulty: null }],
+      empty: true,
+      captain: role,
+    };
+  }
   const player = data.playerById.get(id);
   const team = player && data.teamById.get(player.team);
-  if (!player || !team)
-    return {
-      name: "Unknown",
-      kit: { style: "plain", primary: "#666", secondary: "#fff", gk: "#666" },
-      metrics: [],
-    };
+  if (!player || !team) return { name: "Unknown", kit: NO_KIT, metrics: [] };
   const { pills, blank } = scored ? pastPills(data, player, scored) : metricPills(data, player, gw, metric);
   return {
     name: player.name,
@@ -68,11 +75,7 @@ const NO_POINTS: FixturePoints[] = [];
  * shows the chosen metric). A past gameweek never shows the metric: a player
  * whose points aren't there (yet) gets a dash.
  */
-function scoredIn(
-  past: PastState | undefined,
-  id: number,
-  isPast: boolean,
-): FixturePoints[] | undefined {
+function scoredIn(past: PastState | undefined, id: number, isPast: boolean): FixturePoints[] | undefined {
   if (!isPast) return undefined;
   return (typeof past === "object" && past.playerPoints?.[id]) || NO_POINTS;
 }

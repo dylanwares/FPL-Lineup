@@ -40,7 +40,8 @@ export function projectGw(data: GameData, state: GwState, rules: SeasonRules): G
     const p = player(id);
     return !!p && fixturesFor(data, p.team, gw).length > 0 && xp(id) > 0;
   };
-  const position = (id: number): Position => player(id)?.pos ?? "MID";
+  // An empty slot (negative id) keeps the removed player's position, and never plays.
+  const position = (id: number): Position => player(Math.abs(id))?.pos ?? "MID";
   /** What a player scores: nothing without a fixture, whatever the projection says. */
   const points = (id: number) => (plays(id) ? xp(id) : 0);
 

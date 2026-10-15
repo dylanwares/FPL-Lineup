@@ -2,10 +2,10 @@
 
 import { CaptainBadge } from "@/components/ui/Badges";
 import { GlassPanel } from "@/components/ui/GlassPanel";
-import { Close, Swap, Transfer } from "@/components/ui/Icons";
+import { Close, Swap, Transfer, Trash } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import type { GameData } from "@/data/model";
-import type { Move } from "@/engine/types";
+import { isEmptySlot, type Move } from "@/engine/types";
 import { useGwView } from "./hooks";
 import { CHIP_NAMES, formatPrice } from "./model";
 import { removeMoveAt, resetCurrentGw, usePlanner } from "./store";
@@ -15,7 +15,9 @@ export function describeMove(data: GameData, move: Move): string {
   const name = (id: number) => data.playerById.get(id)?.name ?? "Unknown";
   switch (move.type) {
     case "transfer":
-      return `${name(move.out)} → ${name(move.in)}`;
+      return isEmptySlot(move.out) ? `${name(move.in)} bought` : `${name(move.out)} → ${name(move.in)}`;
+    case "remove":
+      return `${name(move.player)} removed`;
     case "sub":
       return `${name(move.a)} ⇄ ${name(move.b)}`;
     case "captain":
@@ -34,6 +36,12 @@ function MoveIcon({ move }: { move: Move }) {
       return (
         <span className={`${box} bg-violet/15 text-violet`}>
           <Transfer className="size-3.5" />
+        </span>
+      );
+    case "remove":
+      return (
+        <span className={`${box} bg-magenta/15 text-magenta`}>
+          <Trash className="size-3.5" />
         </span>
       );
     case "sub":

@@ -150,3 +150,31 @@ describe("compactPlanGw", () => {
     }
   });
 });
+
+describe("compactPlanGw with removals", () => {
+  it("drops a removal undone by buying the player back", () => {
+    expect(
+      gwMoves(
+        play([
+          { type: "remove", player: 3 },
+          { type: "transfer", out: -3, in: 3 },
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("turns a removal then a buy into one transfer", () => {
+    expect(
+      gwMoves(
+        play([
+          { type: "remove", player: 3 },
+          { type: "transfer", out: -3, in: 18 },
+        ]),
+      ),
+    ).toEqual([{ type: "transfer", gw: 7, out: 3, in: 18 }]);
+  });
+
+  it("keeps a removal as a single step", () => {
+    expect(gwMoves(play([{ type: "remove", player: 3 }]))).toEqual([{ type: "remove", gw: 7, player: 3 }]);
+  });
+});

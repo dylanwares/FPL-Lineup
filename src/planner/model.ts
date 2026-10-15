@@ -30,7 +30,7 @@ export function engineContext(data: GameData): EngineContext {
     const p = (id: number) => data.playerById.get(id);
     ctx = {
       rules: getRules(data.season),
-      position: (id) => p(id)?.pos ?? "MID",
+      position: (id) => p(Math.abs(id))?.pos ?? "MID",
       team: (id) => p(id)?.team ?? 0,
       price: (id) => p(id)?.price ?? 0,
     };

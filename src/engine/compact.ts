@@ -1,6 +1,15 @@
 import { computeGw, type Carry, type PlanResult } from "./plan";
 import { canSwap } from "./squad";
-import { BENCH_GK_SLOT, STARTERS, type EngineContext, type GwState, type Move, type Plan } from "./types";
+import {
+  BENCH_GK_SLOT,
+  emptySlot,
+  isEmptySlot,
+  STARTERS,
+  type EngineContext,
+  type GwState,
+  type Move,
+  type Plan,
+} from "./types";
 
 /**
  * Rewrites one gameweek's moves as the fewest steps that reach the same end
@@ -20,18 +29,32 @@ export function compactGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
 
   if (end.chip) steps.push({ type: "chip", gw, chip: end.chip });
 
-  // Transfers: pair each player sold with one bought in the same position.
-  // Sold in starting-slot order, bought in final-slot order, so the incoming
-  // player usually lands straight in the slot they finish in.
+  // Transfers: pair each slot that changed hands with what it ends up holding,
+  // in the same position. Removing a player and leaving the slot empty is one
+  // step; any other pair is a transfer (out of an empty slot fills it), plus a
+  // removal if the slot ends up empty. Slots are taken in starting-slot and
+  // final-slot order, so the incoming player usually lands straight in the
+  // slot they finish in.
+  const startSet = new Set(start.slots);
+  const endSet = new Set(end.slots);
   for (const pos of ["GKP", "DEF", "MID", "FWD"] as const) {
-    const sold = end.sold
-      .filter((id) => ctx.position(id) === pos)
+    let outs = start.slots
+      .filter((id) => !endSet.has(id) && ctx.position(id) === pos)
       .sort((a, b) => start.slots.indexOf(a) - start.slots.indexOf(b));
-    const bought = end.bought
-      .filter((id) => ctx.position(id) === pos)
+    let ins = end.slots
+      .filter((id) => !startSet.has(id) && ctx.position(id) === pos)
       .sort((a, b) => end.slots.indexOf(a) - end.slots.indexOf(b));
-    if (sold.length !== bought.length) return null;
-    sold.forEach((out, i) => steps.push({ type: "transfer", gw, out, in: bought[i] }));
+    if (outs.length !== ins.length) return null;
+    const removed = outs.filter((id) => ins.includes(emptySlot(id)));
+    for (const player of removed) steps.push({ type: "remove", gw, player });
+    outs = outs.filter((id) => !removed.includes(id));
+    ins = ins.filter((id) => !removed.includes(-id));
+    outs.forEach((out, i) => {
+      const into = ins[i];
+      const player = isEmptySlot(into) ? -into : into;
+      steps.push({ type: "transfer", gw, out, in: player });
+      if (isEmptySlot(into)) steps.push({ type: "remove", gw, player });
+    });
   }
 
   // Subs: first make the starting XI the right set of players, then fix the bench order.

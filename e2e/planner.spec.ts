@@ -164,6 +164,27 @@ test("the player sheet starts a one-off sub or transfer for that player", async 
   await expect(transfer).toHaveAttribute("aria-pressed", "false");
 });
 
+test("removing a player leaves an empty slot that a tap fills", async ({ page, planner }) => {
+  void planner;
+  const n = await names(page);
+  const bank = stats(page).getByText(/£/);
+  const before = await bank.textContent();
+
+  await token(page, n[8]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Removed" })).toContainText(`Removed ${n[8]}`);
+  await expect(token(page, n[8])).toHaveCount(0);
+  await expect(token(page, "Empty")).toHaveCount(1);
+  await expect(bank).not.toHaveText(before!);
+
+  // Tapping the empty slot goes straight to the list of players to fill it.
+  await token(page, "Empty").click();
+  const list = page.getByRole("dialog", { name: "Add a defender" });
+  await list.locator("ul button").first().click();
+  await expect(page.getByRole("status").filter({ hasText: "Bought" })).toBeVisible();
+  await expect(token(page, "Empty")).toHaveCount(0);
+});
+
 test("press, hold and drag a player onto another to sub them", async ({ page, planner }) => {
   void planner;
   await page.setViewportSize({ width: 412, height: 1200 }); // pitch and bench on screen, clear of the auto-scroll edge

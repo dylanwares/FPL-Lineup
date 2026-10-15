@@ -26,7 +26,7 @@ export function testContext(
   const teams = { ...TEAMS, ...overrides.teams };
   return {
     rules: getRules(),
-    position: (id) => POS[id],
+    position: (id) => POS[Math.abs(id)],
     team: (id) => teams[id],
     price: (id) => prices[id],
   };

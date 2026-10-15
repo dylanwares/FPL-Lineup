@@ -5,6 +5,7 @@ import type { Kit as KitColours } from "@/config/kits";
 import { Kit } from "../Kit";
 import { CaptainBadge, FlagIcon } from "../ui/Badges";
 import { FdrPill } from "../ui/FdrPill";
+import { Plus } from "../ui/Icons";
 
 export interface TokenMetric {
   label: string;
@@ -32,6 +33,8 @@ export interface PlayerTokenProps {
   lifted?: boolean;
   /** A drag is hovering over this player, a legal place to drop. */
   targeted?: boolean;
+  /** An empty slot left by a removed player: a dashed outline in place of the kit. */
+  empty?: boolean;
   /** FPL player id, exposed as data-id for drag hit-testing. */
   playerId?: number;
   onClick?: () => void;
@@ -51,6 +54,7 @@ export function PlayerToken({
   dimmed,
   lifted,
   targeted,
+  empty,
   playerId,
   onClick,
 }: PlayerTokenProps) {
@@ -72,7 +76,13 @@ export function PlayerToken({
       <div className="relative">
         {/* contact shadow */}
         <span className="absolute bottom-0 left-1/2 h-2.5 w-11 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(0_0_0/0.65),transparent)]" />
-        {photo ? (
+        {empty ? (
+          <span
+            className={`relative grid size-11 place-items-center rounded-full border-2 border-dashed border-white/50 bg-black/20 text-white/80 sm:size-12 ${glow}`}
+          >
+            <Plus className="size-5" />
+          </span>
+        ) : photo ? (
           // Keyed by URL so a failed photo's fallback doesn't stick to the next player in this slot.
           <PlayerPhoto key={photo} src={photo} kit={kit} goalkeeper={goalkeeper} className={glow} />
         ) : (

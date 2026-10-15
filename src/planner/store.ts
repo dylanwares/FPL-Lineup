@@ -7,13 +7,15 @@ import { cancelChip, playChip } from "@/engine/chips";
 import { addMove, removeMove, resetGw, stateAt } from "@/engine/plan";
 import { compactPlanGw } from "@/engine/compact";
 import { canSwap } from "@/engine/squad";
-import type { Move, Plan } from "@/engine/types";
+import { sellingPrice } from "@/engine/money";
+import { isEmptySlot, type Move, type Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
 import { DEFAULT_METRIC, isMetric, type Metric } from "./metrics";
 import {
   CHIP_NAMES,
   copyPlan,
   engineContext,
+  formatPrice,
   MAX_PLAN_NAME,
   newPlan,
   planResult,
@@ -415,6 +417,9 @@ function playerName(id: number) {
 export function tapPlayer(id: number) {
   const { mode, selected, data, team, gw } = get();
   const readOnly = !team || gw < team.planFromGw;
+  if (readOnly && isEmptySlot(id)) return;
+  // An empty slot has no sheet: tapping it goes straight to picking someone to fill it.
+  if (mode === "none" && isEmptySlot(id)) return startMoveFor(id, "transfer");
   if (mode === "none" || readOnly) return openSheet(id);
   if (mode === "transfer") return set({ selected: selected === id ? null : id });
 
@@ -479,7 +484,26 @@ export function buyPlayer(incoming: number) {
   const before = plan;
   applyMove({ type: "transfer", out: selected, in: incoming });
   clearSelection();
-  showToast(`Sold ${playerName(selected)}, bought ${playerName(incoming)}`, {
+  const message = isEmptySlot(selected)
+    ? `Bought ${playerName(incoming)}`
+    : `Sold ${playerName(selected)}, bought ${playerName(incoming)}`;
+  showToast(message, {
+    label: "Undo",
+    run: () => restorePlan(before),
+  });
+}
+
+/** Sells a player without a replacement, leaving an empty slot to fill later. With Undo. */
+export function removePlayer(player: number) {
+  const { plan, data } = get();
+  const state = currentState();
+  if (!plan || !data || !state || !state.slots.includes(player) || isEmptySlot(player)) return;
+  const before = plan;
+  const price = engineContext(data).price(player);
+  const sale = sellingPrice(state.purchase[player] ?? price, price);
+  applyMove({ type: "remove", player });
+  set({ sheetPlayer: null, selected: null });
+  showToast(`Removed ${playerName(player)} (+${formatPrice(sale)})`, {
     label: "Undo",
     run: () => restorePlan(before),
   });

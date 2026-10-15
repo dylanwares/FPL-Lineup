@@ -7,6 +7,7 @@ import { FdrPill } from "@/components/ui/FdrPill";
 import { Close } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { getRules } from "@/config/rules";
+import { isEmptySlot } from "@/engine/types";
 import {
   budgetFor,
   candidatesFor,
@@ -20,6 +21,8 @@ import { fixtureMetrics, formatPrice } from "./model";
 import { buyPlayer, clearSelection, usePlanner } from "./store";
 
 const ROW_HEIGHT = 60;
+
+const POSITION_NOUNS = { GKP: "goalkeeper", DEF: "defender", MID: "midfielder", FWD: "forward" };
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "xp", label: "Projected pts" },
@@ -86,8 +89,10 @@ export default function PlayerList() {
   }, [filters.sort, filters.team, filters.maxPrice, filters.affordable, query]);
 
   if (!data || !state || out === null) return null;
-  const outPlayer = data.playerById.get(out);
+  // An empty slot is filled with someone in the removed player's position.
+  const outPlayer = data.playerById.get(Math.abs(out));
   if (!outPlayer) return null;
+  const empty = isEmptySlot(out);
   const budget = budgetFor(data, state, out);
   const update = (patch: Partial<CandidateFilters>) => setFilters((f) => ({ ...f, ...patch }));
   const teams = [...data.teams].sort((a, b) => a.name.localeCompare(b.name));
@@ -113,11 +118,11 @@ export default function PlayerList() {
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <h2 id="list-title" className="font-display text-lg leading-tight font-bold">
-                Replace {outPlayer.name}
+                {empty ? `Add a ${POSITION_NOUNS[outPlayer.pos]}` : `Replace ${outPlayer.name}`}
               </h2>
               <p className="text-xs text-muted">
                 Budget <span className={budget < 0 ? "text-magenta" : "text-fg"}>{formatPrice(budget)}</span>{" "}
-                · bank plus ≈selling price · GW{gw}
+                · {empty ? "bank" : "bank plus ≈selling price"} · GW{gw}
               </p>
             </div>
             <PillButton size="icon" aria-label="Close" onClick={clearSelection}>
@@ -127,7 +132,7 @@ export default function PlayerList() {
 
           <input
             type="search"
-            placeholder={`Search ${outPlayer.pos === "GKP" ? "goalkeepers" : outPlayer.pos === "DEF" ? "defenders" : outPlayer.pos === "MID" ? "midfielders" : "forwards"}`}
+            placeholder={`Search ${POSITION_NOUNS[outPlayer.pos]}s`}
             aria-label="Search players"
             value={filters.query}
             onChange={(e) => update({ query: e.target.value })}

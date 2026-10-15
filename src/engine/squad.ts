@@ -1,5 +1,5 @@
 import type { Position, SeasonRules } from "@/config/rules";
-import { BENCH_GK_SLOT, STARTERS, type Slots } from "./types";
+import { BENCH_GK_SLOT, isEmptySlot, STARTERS, type Slots } from "./types";
 
 export const POSITION_ORDER: Position[] = ["GKP", "DEF", "MID", "FWD"];
 
@@ -61,9 +61,9 @@ export function formationRows(slots: Slots, position: (id: number) => Position):
   return rows;
 }
 
-/** Players per club across the 15-man squad. */
+/** Players per club across the 15-man squad (empty slots aside). */
 export function clubCounts(slots: Slots, team: (id: number) => number): Map<number, number> {
   const counts = new Map<number, number>();
-  for (const id of slots) counts.set(team(id), (counts.get(team(id)) ?? 0) + 1);
+  for (const id of slots) if (!isEmptySlot(id)) counts.set(team(id), (counts.get(team(id)) ?? 0) + 1);
   return counts;
 }
