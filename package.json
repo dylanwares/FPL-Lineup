@@ -16,18 +16,29 @@
     "format": "prettier --write .",
     "size": "tsx scripts/check-bundle.ts",
     "lhci": "lhci autorun",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "db:up": "docker compose up -d --wait",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "icons": "tsx scripts/build-icons.ts"
   },
   "dependencies": {
+    "@neondatabase/auth": "0.6.0-beta",
+    "@neondatabase/serverless": "^1.2.0",
     "@tanstack/react-virtual": "^3.14.17",
+    "drizzle-orm": "^0.45.4",
     "idb": "^8.0.4",
     "next": "16.4.0",
+    "postgres": "^3.4.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
     "web-vitals": "^6.2.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.64.0",
     "@tailwindcss/turbopack": "^4",
@@ -35,6 +46,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^5.0.3",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "fake-indexeddb": "^6.2.5",

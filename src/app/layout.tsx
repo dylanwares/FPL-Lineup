@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Unbounded } from "next/font/google";
 import { Header } from "@/components/Header";
 import { themeScript } from "@/components/ThemeToggle";
+import { AccountLayer } from "@/account/AccountLayer";
 import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { WebVitals } from "@/components/WebVitals";
 import "./globals.css";
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-full flex-col pb-[calc(env(safe-area-inset-bottom)+5rem)]">
         <WebVitals />
         <PwaSetup />
+        <AccountLayer />
         <Header />
         <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4">{children}</main>
         <footer className="mx-auto w-full max-w-lg px-4 py-8 text-center text-[11px] leading-relaxed text-muted">

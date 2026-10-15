@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Download, Logout } from "@/components/ui/Icons";
-import { disconnect, usePlanner } from "@/planner/store";
+import { openSignIn, signOut, useAccount } from "@/account/account";
+import { Download, Logout, Mail } from "@/components/ui/Icons";
+import { disconnect, showToast, usePlanner } from "@/planner/store";
 import { startInstall, useInstallMode } from "./pwa/install";
 
 const ITEM =
   "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm outline-none hover:bg-[var(--line)] focus-visible:bg-[var(--line)]";
 
-/** The account menu's contents: the connected FPL team, Change FPL team, and Install app. */
+/** The account menu's contents: sign-in, the connected FPL team, Change FPL team, and Install app. */
 export function AccountPanel({ close }: { close: () => void }) {
   const team = usePlanner((s) => s.team);
+  const account = useAccount((s) => s);
   const installable = useInstallMode() !== null;
   const panel = useRef<HTMLDivElement>(null);
 
@@ -29,6 +31,42 @@ export function AccountPanel({ close }: { close: () => void }) {
           className="glass-strong fade-in flex flex-col rounded-xl p-1.5"
           style={{ background: "linear-gradient(var(--glass-solid), var(--glass-solid)), var(--bg)" }}
         >
+          {account.status === "signed-in" ? (
+            <>
+              <div className="px-3 pt-2 pb-1">
+                <p className="text-[11px] text-muted">Signed in as</p>
+                <p className="truncate text-sm font-semibold">{account.email}</p>
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                className={ITEM}
+                onClick={() => {
+                  close();
+                  void signOut().then(() => showToast("Signed out. Your plans stay on this device."));
+                }}
+              >
+                <Logout className="size-4 text-muted" /> Sign out
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              role="menuitem"
+              className={ITEM}
+              onClick={() => {
+                close();
+                openSignIn();
+              }}
+            >
+              <Mail className="size-4 text-muted" />
+              <span>
+                Sign in
+                <span className="block text-xs text-muted">Sync plans across your devices</span>
+              </span>
+            </button>
+          )}
+          <div role="separator" className="mx-2 my-1 h-px bg-[var(--line)]" />
           {team ? (
             <>
               <div className="px-3 pt-2 pb-2.5">
@@ -49,9 +87,7 @@ export function AccountPanel({ close }: { close: () => void }) {
               </button>
             </>
           ) : (
-            <p className="px-3 py-2.5 text-sm text-muted">
-              Enter your FPL team ID to start planning. Accounts to sync plans are coming soon.
-            </p>
+            <p className="px-3 py-2.5 text-sm text-muted">Enter your FPL team ID to start planning.</p>
           )}
           {installable && (
             <button

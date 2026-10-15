@@ -41,6 +41,7 @@ export const Refresh = (p: P) => <Icon d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" {.
 export const Logout = (p: P) => <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" {...p} />;
 export const Share = (p: P) => <Icon d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1" {...p} />;
 export const Download = (p: P) => <Icon d="M12 4v11M8 11l4 4 4-4M5 20h14" {...p} />;
+export const Mail = (p: P) => <Icon d="M3 6h18v12H3zM3 7l9 6 9-6" {...p} />;
 export const Close = (p: P) => <Icon d="M6 6l12 12M18 6 6 18" {...p} />;
 export const Camera = (p: P) => (
   <Icon d="M4 8h3l2-3h6l2 3h3v11H4ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...p} />

@@ -26,6 +26,10 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+
+      # The schema and the committed migrations must agree: generating finds nothing new.
+      - name: Check migrations match the schema
+        run: pnpm db:generate && test -z "$(git status --porcelain drizzle)"
       - run: pnpm exec prettier --check .
       - run: pnpm build
 
