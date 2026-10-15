@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useReducer, type ComponentType } from "react";
+import { useEffect, useReducer, type ComponentType, type ReactNode } from "react";
 
 /**
  * A code-split component that renders synchronously once its module has
  * loaded. Unlike `next/dynamic` / `React.lazy` it never suspends, so it
  * avoids React's ~300 ms Suspense reveal throttle: after `preload()` has
- * finished, the first open is as fast as any other.
+ * finished, the first open is as fast as any other. `fallback` shows while
+ * the module loads.
  */
-export function lazyComponent<P extends object>(load: () => Promise<ComponentType<P>>) {
+export function lazyComponent<P extends object>(
+  load: () => Promise<ComponentType<P>>,
+  fallback: ReactNode = null,
+) {
   let Loaded: ComponentType<P> | null = null;
   let pending: Promise<void> | null = null;
 
@@ -28,7 +32,7 @@ export function lazyComponent<P extends object>(load: () => Promise<ComponentTyp
     useEffect(() => {
       if (!Loaded) preload().then(rerender, () => {});
     }, []);
-    return Loaded ? <Loaded {...props} /> : null;
+    return Loaded ? <Loaded {...props} /> : fallback;
   }
 
   return { Lazy, preload };

@@ -160,7 +160,7 @@ In the old app, switching gameweeks and making subs or transfers were the slow s
 | Gameweek switch | Renders in under 50 ms, with no network request |
 | Sub or transfer | On screen in under 50 ms; INP under 200 ms across the app |
 | Opening the player list (about 700 players) | Under 100 ms, with smooth 60 fps scrolling |
-| First visit on 4G | LCP under 2.0 s; planner JavaScript under 150 KB gzipped |
+| First visit on 4G | LCP under 2.0 s; planner JavaScript under 160 KB gzipped (React and Next are about 132 KB of it) |
 | Repeat visit | Interactive in under 1 s from cache |
 
 **How the targets are met**

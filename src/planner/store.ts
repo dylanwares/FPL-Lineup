@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { ChipName } from "@/config/rules";
-import { deletePlan as deleteStoredPlan, readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
+import { readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
 import { cancelChip, playChip } from "@/engine/chips";
@@ -11,17 +11,7 @@ import { sellingPrice } from "@/engine/money";
 import { isEmptySlot, type Move, type Plan } from "@/engine/types";
 import type { PastPicks, TeamImport } from "@/lib/fpl/types";
 import { DEFAULT_METRIC, isMetric, type Metric } from "./metrics";
-import {
-  CHIP_NAMES,
-  copyPlan,
-  engineContext,
-  formatPrice,
-  MAX_PLAN_NAME,
-  newPlan,
-  planResult,
-  rebasePlan,
-  uniquePlanName,
-} from "./model";
+import { CHIP_NAMES, engineContext, formatPrice, newPlan, planResult, rebasePlan } from "./model";
 
 const ENTRY_KEY = "fpl-lineup:entry";
 const METRIC_KEY = "fpl-lineup:metric";
@@ -122,7 +112,7 @@ function rememberEntryId(id: number | null) {
   }
 }
 
-function persistPlan(plan: Plan) {
+export function persistPlan(plan: Plan) {
   writePlan(plan).catch((err: unknown) => console.warn("Couldn't save plan", err));
 }
 
@@ -134,7 +124,7 @@ function storedPlanId(entryId: number): string | null {
   }
 }
 
-function rememberPlanId(plan: Plan) {
+export function rememberPlanId(plan: Plan) {
   try {
     localStorage.setItem(planKey(plan.entryId), plan.id);
   } catch {
@@ -142,7 +132,7 @@ function rememberPlanId(plan: Plan) {
   }
 }
 
-const byCreated = (a: Plan, b: Plan) => a.createdAt - b.createdAt;
+export const byCreated = (a: Plan, b: Plan) => a.createdAt - b.createdAt;
 
 /** The plan to open: the one last on screen on this device, else the most recently edited. */
 function pickPlan(plans: Plan[], entryId: number): Plan | undefined {
@@ -154,7 +144,7 @@ function pickPlan(plans: Plan[], entryId: number): Plan | undefined {
 }
 
 /** Saves an edit to a plan, keeping the plan list in step. */
-function commitPlan(next: Plan) {
+export function commitPlan(next: Plan) {
   const { plans } = get();
   set({
     plan: next,
@@ -584,87 +574,6 @@ export function openPlanUi(ui: PlanUi) {
 
 export function closePlanUi() {
   set({ planUi: null });
-}
-
-/** Shows another of the team's plans. Undo toasts belong to the old plan, so they go. */
-export function selectPlan(id: string) {
-  const plan = get().plans.find((p) => p.id === id);
-  set({ planUi: null });
-  if (!plan || plan.id === get().plan?.id) return;
-  rememberPlanId(plan);
-  set({ plan, selected: null, sheetPlayer: null, dragFrom: null, dragOver: null, toasts: [] });
-}
-
-function addPlan(plan: Plan, message: string) {
-  commitPlan(plan);
-  rememberPlanId(plan);
-  set({ selected: null, sheetPlayer: null, toasts: [] });
-  showToast(message);
-}
-
-/** A new plan from the current squad with no moves, named in the "Name your plan" box. */
-export function createPlan(name: string) {
-  const { team, plans } = get();
-  const trimmed = name.trim().slice(0, MAX_PLAN_NAME);
-  set({ planUi: null });
-  if (!team || !trimmed) return;
-  const plan = newPlan(team, uniquePlanName(plans, trimmed));
-  addPlan(plan, `Created ${plan.name}`);
-}
-
-/** A copy of the plan on screen, moves and all, to try another route. */
-export function duplicatePlan() {
-  const { plan, plans } = get();
-  if (!plan) return;
-  const copy = copyPlan(plan, uniquePlanName(plans, `${plan.name} copy`.slice(0, MAX_PLAN_NAME)));
-  set({ planUi: null });
-  addPlan(copy, `Duplicated as ${copy.name}`);
-}
-
-export function renamePlan(name: string) {
-  const { plan } = get();
-  const trimmed = name.trim().slice(0, MAX_PLAN_NAME);
-  set({ planUi: null });
-  if (!plan || !trimmed || trimmed === plan.name) return;
-  commitPlan({ ...plan, name: trimmed, updatedAt: Date.now() });
-}
-
-/**
- * Deletes the plan on screen (after the confirm dialog) and opens the most
- * recently edited of the rest. Deleting the last plan leaves a fresh one.
- * Undo puts it back while the toast is up.
- */
-export function deleteCurrentPlan() {
-  const { plan, plans, team } = get();
-  set({ planUi: null });
-  if (!plan || !team) return;
-  let rest = plans.filter((p) => p.id !== plan.id);
-  const fresh = rest.length === 0 ? newPlan(team) : null;
-  if (fresh) rest = [fresh];
-  const next = rest.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
-
-  deleteStoredPlan(plan.id).catch((err: unknown) => console.warn("Couldn't delete plan", err));
-  if (fresh) persistPlan(fresh);
-  rememberPlanId(next);
-  set({ plan: next, plans: rest, selected: null, sheetPlayer: null, toasts: [] });
-
-  showToast(`Deleted ${plan.name}`, {
-    label: "Undo",
-    run: () => {
-      if (fresh) deleteStoredPlan(fresh.id).catch(() => {});
-      const restored = [...get().plans.filter((p) => p.id !== fresh?.id), plan].sort(byCreated);
-      persistPlan(plan);
-      rememberPlanId(plan);
-      set({ plan, plans: restored, selected: null });
-    },
-  });
-}
-
-/** Refresh from the ⋯ menu: the menu closes and a toast confirms (errors show under the plan bar). */
-export async function refreshTeamFromMenu() {
-  set({ planUi: null });
-  await refreshTeam();
-  if (!get().refreshError) showToast("Team refreshed from FPL");
 }
 
 /* ---------------- Metric and photos ---------------- */

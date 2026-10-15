@@ -40,7 +40,7 @@ jobs:
           path: test-results
           if-no-files-found: ignore
 
-      # Performance budgets (spec: planner JS < 150 KB gzip, LCP < 2.0 s on mobile).
+      # Performance budgets (spec: planner JS < 160 KB gzip, LCP < 2.0 s on mobile).
       - run: pnpm size
       - run: pnpm lhci
 

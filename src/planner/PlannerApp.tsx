@@ -3,10 +3,16 @@
 import { useEffect } from "react";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { PillButton } from "@/components/ui/PillButton";
-import { ConnectScreen } from "./ConnectScreen";
+import { lazyComponent } from "@/lib/lazy";
 import { PlannerScreen } from "./PlannerScreen";
 import { PlannerSkeleton } from "./PlannerSkeleton";
 import { boot, usePlanner } from "./store";
+
+// Only first-time visitors see the connect screen, so returning users never load it.
+const connectScreen = lazyComponent(
+  () => import("./ConnectScreen").then((m) => m.ConnectScreen),
+  <PlannerSkeleton />,
+);
 
 /** The planner's single client island. Server-renders a skeleton, then boots from device storage. */
 export function PlannerApp() {
@@ -29,6 +35,6 @@ export function PlannerApp() {
     );
   }
   if (phase === "booting") return <PlannerSkeleton />;
-  if (phase === "connect" || phase === "importing") return <ConnectScreen />;
+  if (phase === "connect" || phase === "importing") return <connectScreen.Lazy />;
   return <PlannerScreen />;
 }

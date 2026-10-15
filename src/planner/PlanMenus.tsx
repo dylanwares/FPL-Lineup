@@ -6,16 +6,14 @@ import { PillButton } from "@/components/ui/PillButton";
 import type { Plan } from "@/engine/types";
 import { MAX_PLAN_NAME, uniquePlanName } from "./model";
 import {
-  closePlanUi,
   createPlan,
   deleteCurrentPlan,
   duplicatePlan,
-  openPlanUi,
   refreshTeamFromMenu,
   renamePlan,
   selectPlan,
-  usePlanner,
-} from "./store";
+} from "./plan-actions";
+import { closePlanUi, openPlanUi, usePlanner } from "./store";
 
 const changes = (plan: Plan) =>
   plan.moves.length === 0 ? "No changes" : `${plan.moves.length} change${plan.moves.length === 1 ? "" : "s"}`;

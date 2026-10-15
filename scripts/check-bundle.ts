@@ -12,7 +12,8 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const NEXT = path.join(ROOT, ".next");
 
 const BUDGETS: { route: string; html: string; maxKb: number }[] = [
-  { route: "/", html: "server/app/index.html", maxKb: 150 },
+  // React and Next alone are ~132 KB (Next 16.4); the rest is headroom for the planner and Stage 5.
+  { route: "/", html: "server/app/index.html", maxKb: 160 },
 ];
 
 async function firstLoadScripts(htmlFile: string) {

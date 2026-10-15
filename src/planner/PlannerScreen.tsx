@@ -4,14 +4,12 @@ import { useEffect } from "react";
 import { ChipsRow } from "./ChipsRow";
 import { GwNav } from "./GwNav";
 import { MetricRow } from "./MetricRow";
-import { playerList, playerSheet, preloadOnIdle } from "./lazy-parts";
+import { planHistory, playerList, playerSheet, preloadOnIdle, toaster } from "./lazy-parts";
 import { ModeBar } from "./ModeBar";
 import { PitchView } from "./PitchView";
-import { PlanHistory } from "./PlanHistory";
 import { PlanBar } from "./PlanBar";
 import { StatsRow } from "./StatsRow";
 import { clearSelection, exitMode, stepGw, usePlanner } from "./store";
-import { Toaster } from "./Toaster";
 
 export function PlannerScreen() {
   // ← / → change gameweek on desktop; Escape cancels a selection, then the mode.
@@ -42,10 +40,10 @@ export function PlannerScreen() {
       <ChipsRow />
       <PitchView />
       <ModeBar />
-      <PlanHistory />
+      <planHistory.Lazy />
       <Sheet />
       <TransferList />
-      <Toaster />
+      <Toasts />
     </div>
   );
 }
@@ -58,4 +56,9 @@ function TransferList() {
 function Sheet() {
   const open = usePlanner((s) => s.sheetPlayer !== null);
   return open ? <playerSheet.Lazy /> : null;
+}
+
+function Toasts() {
+  const any = usePlanner((s) => s.toasts.length > 0);
+  return any ? <toaster.Lazy /> : null;
 }
