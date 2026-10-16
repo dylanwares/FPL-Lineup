@@ -1,23 +1,23 @@
 import type { TokenMetric } from "@/components/pitch/PlayerToken";
 import { fixturesFor, xpFor, type GameData, type Player } from "@/data/model";
 import type { FixturePoints } from "@/lib/fpl/types";
-import { fixtureMetrics, formatPrice } from "./model";
+import { sellingPrice } from "@/engine/money";
+import { formatPrice } from "./model";
 
 /** What the pill under each player shows. */
-export type Metric = "fixture" | "xp" | "xp3" | "xp5" | "form" | "price" | "selected" | "points";
+export type Metric = "xp" | "xp3" | "xp5" | "form" | "sell" | "selected" | "points";
 
 export const METRICS: { key: Metric; label: string }[] = [
-  { key: "fixture", label: "Next fixture" },
   { key: "xp", label: "Projected points" },
   { key: "xp3", label: "Projected points, next 3" },
   { key: "xp5", label: "Projected points, next 5" },
   { key: "form", label: "Form" },
-  { key: "price", label: "Price" },
+  { key: "sell", label: "Selling price" },
   { key: "selected", label: "Selected by %" },
   { key: "points", label: "Total points" },
 ];
 
-export const DEFAULT_METRIC: Metric = "fixture";
+export const DEFAULT_METRIC: Metric = "xp";
 
 export function isMetric(value: unknown): value is Metric {
   return METRICS.some((m) => m.key === value);
@@ -62,13 +62,20 @@ export interface MetricPills {
 const finishedGws = (data: GameData) => data.events.filter((e) => e.finished).length;
 
 /**
- * The pill(s) under a player for the chosen metric in a gameweek. Next
- * fixture is coloured by difficulty (two pills in a double); points metrics
- * by how good the value is; price and ownership are neutral, as neither is
- * good or bad in itself. A blank gameweek greys the player out, with a dash
- * for the metrics that depend on that gameweek's fixture.
+ * The pill under a player for the chosen metric in a gameweek. All are
+ * numbers: points metrics are coloured by how good the value is; selling
+ * price and ownership are neutral, as neither is good or bad in itself. A
+ * blank gameweek greys the player out, with nothing for the projection of
+ * that gameweek. `purchase` is what the manager paid, in tenths of £1m, for
+ * the selling price (a player not yet bought sells at the current price).
  */
-export function metricPills(data: GameData, player: Player, gw: number, metric: Metric): MetricPills {
+export function metricPills(
+  data: GameData,
+  player: Player,
+  gw: number,
+  metric: Metric,
+  purchase?: number,
+): MetricPills {
   const blank = fixturesFor(data, player.team, gw).length === 0;
   const pill = (label: string, tier: number | null): MetricPills => ({
     pills: [{ label, difficulty: tier }],
@@ -76,8 +83,6 @@ export function metricPills(data: GameData, player: Player, gw: number, metric: 
   });
 
   switch (metric) {
-    case "fixture":
-      return { pills: fixtureMetrics(data, player.team, gw), blank };
     case "xp": {
       if (blank) return { pills: [], blank };
       const xp = xpFor(data, player, gw);
@@ -91,8 +96,8 @@ export function metricPills(data: GameData, player: Player, gw: number, metric: 
     }
     case "form":
       return pill(player.form.toFixed(1), rateTier(player.form));
-    case "price":
-      return pill(formatPrice(player.price), null);
+    case "sell":
+      return pill(formatPrice(sellingPrice(purchase ?? player.price, player.price)), null);
     case "selected":
       return pill(`${player.selectedBy.toFixed(1)}%`, null);
     case "points":

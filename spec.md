@@ -77,15 +77,14 @@ Everything is centred on one planner screen; the fixture ticker is the only othe
 
 The dropdown sets the pill under each player's name:
 
-- Next fixture (default)
-- Projected points for this gameweek
+- Projected points for this gameweek (default)
 - Projected points over the next 3 or 5 gameweeks
 - Form
-- Price
+- Selling price (what the manager would get for the player: purchase price plus half of any rise, rounded down)
 - Selected by %
 - Total points
 
-In a double gameweek both fixtures are shown. In a blank gameweek the player is greyed out with a dash. Projected points come from the tracker's expected-points model.
+Every metric is a number. In a blank gameweek the player is greyed out. Projected points come from the tracker's expected-points model.
 
 ### Stats row
 

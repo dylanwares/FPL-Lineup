@@ -128,6 +128,29 @@ export function fixtureMetrics(data: GameData, teamId: number, gw: number): Toke
   });
 }
 
+/**
+ * A team's next `count` matches from `gw` (that gameweek included), one pill
+ * each: the opponent's short name, capitals at home and lower case away, with
+ * the difficulty for the colour. A double counts as two matches and a blank
+ * as none, so there can be fewer than `count` at the end of the season.
+ */
+export function upcomingFixtures(data: GameData, teamId: number, gw: number, count = 3): TokenMetric[] {
+  const out: TokenMetric[] = [];
+  for (let g = gw; g < data.fixturesByGw.length && out.length < count; g++) {
+    for (const f of fixturesFor(data, teamId, g)) {
+      if (out.length === count) break;
+      const home = f.home === teamId;
+      const opp = data.teamById.get(home ? f.away : f.home);
+      const short = opp?.short ?? "?";
+      out.push({
+        label: home ? short : short.toLowerCase(),
+        difficulty: home ? f.homeDifficulty : f.awayDifficulty,
+      });
+    }
+  }
+  return out;
+}
+
 export function playerFlag(player: Player): "doubt" | "injured" | undefined {
   if (player.status === "a") return undefined;
   return player.status === "d" ? "doubt" : "injured";

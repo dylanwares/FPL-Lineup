@@ -463,8 +463,8 @@ test("metric dropdown changes every pill and is remembered; photos fall back to 
   const metric = page.getByLabel("Show under each player");
   const haaland = token(page, n[411]);
 
-  await expect(metric).toHaveValue("fixture");
-  await metric.selectOption({ label: "Price" });
+  await expect(metric).toHaveValue("xp");
+  await metric.selectOption({ label: "Selling price" });
   await expect(haaland).toContainText(/£\d+\.\dm/);
   await metric.selectOption({ label: "Projected points" });
   await expect(haaland).toContainText(/^\D*\d+\.\d|–/);
@@ -558,7 +558,7 @@ test("past gameweeks show each player's points and opponent, whatever the metric
     }),
   );
 
-  await page.getByLabel("Show under each player").selectOption({ label: "Price" });
+  await page.getByLabel("Show under each player").selectOption({ label: "Selling price" });
   await page.getByRole("button", { name: "Previous gameweek" }).click();
   await expect(token(page, n[411])).toContainText(`13 · ${home ? opp : opp.toLowerCase()}`);
   await expect(page.getByLabel("Show under each player")).toBeDisabled();
@@ -588,7 +588,7 @@ test("a stale past response without points is reloaded, never shown as the metri
     return route.fulfill({ json: { ...base, playerPoints } });
   });
 
-  await page.getByLabel("Show under each player").selectOption({ label: "Price" });
+  await page.getByLabel("Show under each player").selectOption({ label: "Selling price" });
   await page.getByRole("button", { name: "Previous gameweek" }).click();
   await expect(token(page, n[411])).toContainText("9");
   await expect(token(page, n[411])).not.toContainText("£");

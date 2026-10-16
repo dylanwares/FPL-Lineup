@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeBootstrap } from "@/data/decode";
 import { BOOTSTRAP_FORMAT } from "@/data/format";
+import { upcomingFixtures } from "./model";
 import { metricPills, pastPills, rateTier, xpOver } from "./metrics";
 
 /**
@@ -55,14 +56,6 @@ const data = decodeBootstrap({
 const saka = data.playerById.get(1)!;
 
 describe("metricPills", () => {
-  it("shows fixtures by difficulty, two in a double", () => {
-    expect(metricPills(data, saka, 1, "fixture")).toEqual({
-      pills: [{ label: "BRE (H)", difficulty: 2 }],
-      blank: false,
-    });
-    expect(metricPills(data, saka, 2, "fixture").pills.map((p) => p.label)).toEqual(["BRE", "bre"]);
-  });
-
   it("colours projected points by value, and dashes a blank", () => {
     expect(metricPills(data, saka, 1, "xp").pills).toEqual([{ label: "6.0", difficulty: 1 }]);
     expect(metricPills(data, saka, 4, "xp").pills).toEqual([{ label: "3.0", difficulty: 3 }]);
@@ -81,7 +74,9 @@ describe("metricPills", () => {
 
   it("shows season stats, with price and ownership neutral", () => {
     expect(metricPills(data, saka, 1, "form").pills).toEqual([{ label: "5.2", difficulty: 2 }]);
-    expect(metricPills(data, saka, 1, "price").pills).toEqual([{ label: "£8.5m", difficulty: null }]);
+    expect(metricPills(data, saka, 1, "sell").pills).toEqual([{ label: "£8.5m", difficulty: null }]); // not bought: the current price
+    expect(metricPills(data, saka, 1, "sell", 80).pills).toEqual([{ label: "£8.2m", difficulty: null }]); // bought at 8.0: half the 0.5 rise
+    expect(metricPills(data, saka, 1, "sell", 90).pills).toEqual([{ label: "£8.5m", difficulty: null }]); // bought at 9.0: a fall sells at the current price
     expect(metricPills(data, saka, 1, "selected").pills).toEqual([{ label: "34.5%", difficulty: null }]);
     // 40 points over 4 finished gameweeks = 10 a gameweek.
     expect(metricPills(data, saka, 1, "points").pills).toEqual([{ label: "40", difficulty: 1 }]);
@@ -114,5 +109,20 @@ describe("pastPills", () => {
 
   it("greys out a blank", () => {
     expect(pastPills(data, saka, [])).toEqual({ pills: [], blank: true });
+  });
+});
+
+describe("upcomingFixtures", () => {
+  it("lists the next three matches, a double counting as two", () => {
+    expect(upcomingFixtures(data, 1, 1)).toEqual([
+      { label: "BRE", difficulty: 2 },
+      { label: "BRE", difficulty: 2 },
+      { label: "bre", difficulty: 5 },
+    ]);
+  });
+
+  it("skips blanks and runs short at the end of the season", () => {
+    expect(upcomingFixtures(data, 1, 3)).toEqual([{ label: "bre", difficulty: 5 }]);
+    expect(upcomingFixtures(data, 1, 5)).toEqual([]);
   });
 });

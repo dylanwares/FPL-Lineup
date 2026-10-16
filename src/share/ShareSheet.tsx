@@ -170,7 +170,16 @@ function useScene(): SceneInput | null {
     const isPast = gw < team.planFromGw;
     const token = (id: number, withRole: boolean): SceneToken => {
       const role: Role = withRole ? (id === captain ? "C" : id === vice ? "V" : undefined) : undefined;
-      const { photo, ...props } = tokenProps(data, id, gw, role, metric, photos, scoredIn(past, id, isPast));
+      const { photo, ...props } = tokenProps(
+        data,
+        id,
+        gw,
+        role,
+        metric,
+        photos,
+        scoredIn(past, id, isPast),
+        "purchase" in squad ? squad.purchase[id] : undefined,
+      );
       return { ...props, photoCode: photo ? data.playerById.get(id)?.code : undefined };
     };
     return {

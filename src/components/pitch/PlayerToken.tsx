@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Kit as KitColours } from "@/config/kits";
 import { Kit } from "../Kit";
 import { CaptainBadge, FlagIcon } from "../ui/Badges";
-import { FdrPill } from "../ui/FdrPill";
+import { FdrPill, fdrTone } from "../ui/FdrPill";
 import { Plus } from "../ui/Icons";
 
 export interface TokenMetric {
@@ -19,6 +19,8 @@ export interface PlayerTokenProps {
   goalkeeper?: boolean;
   /** One entry normally, two in a double gameweek, none in a blank (greyed, dash). */
   metrics: TokenMetric[];
+  /** The player's next matches, a strip of difficulty-coloured opponents between the name and the metric. */
+  upcoming?: TokenMetric[];
   /** No fixture this gameweek: greyed out. Defaults to having no metrics. */
   blank?: boolean;
   /** Photo view: the player's photo in place of the kit (the kit shows if it fails to load). */
@@ -46,6 +48,7 @@ export function PlayerToken({
   kit,
   goalkeeper,
   metrics,
+  upcoming,
   blank = metrics.length === 0,
   photo,
   captain,
@@ -78,7 +81,7 @@ export function PlayerToken({
         <span className="absolute bottom-0 left-1/2 h-2.5 w-11 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(0_0_0/0.65),transparent)]" />
         {empty ? (
           <span
-            className={`relative grid size-11 place-items-center rounded-full border-2 border-dashed border-white/50 bg-black/20 text-white/80 sm:size-12 ${glow}`}
+            className={`relative grid size-10 place-items-center rounded-full border-2 border-dashed border-white/50 bg-black/20 text-white/80 sm:size-12 ${glow}`}
           >
             <Plus className="size-5" />
           </span>
@@ -86,7 +89,7 @@ export function PlayerToken({
           // Keyed by URL so a failed photo's fallback doesn't stick to the next player in this slot.
           <PlayerPhoto key={photo} src={photo} kit={kit} goalkeeper={goalkeeper} className={glow} />
         ) : (
-          <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-11 sm:size-12 ${glow}`} />
+          <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-10 sm:size-12 ${glow}`} />
         )}
         {captain && <CaptainBadge role={captain} className="absolute top-0 -left-2.5" />}
         {flag && <FlagIcon flag={flag} className="absolute top-0.5 -right-2.5" />}
@@ -98,6 +101,7 @@ export function PlayerToken({
       >
         {name}
       </span>
+      {upcoming && <UpcomingStrip fixtures={upcoming} />}
       <span className="flex w-full overflow-hidden rounded-b-md">
         {metrics.length === 0 ? (
           <FdrPill difficulty={null} className="w-full rounded-none">
@@ -115,6 +119,28 @@ export function PlayerToken({
   );
 }
 
+/** Slots in the strip of upcoming matches. */
+export const UPCOMING_SLOTS = 3;
+
+/** The next few opponents as small difficulty-coloured cells; unfilled slots stay blank. */
+function UpcomingStrip({ fixtures }: { fixtures: TokenMetric[] }) {
+  return (
+    <span data-upcoming className="flex w-full overflow-hidden bg-[rgb(8_5_16/0.82)]">
+      {Array.from({ length: UPCOMING_SLOTS }, (_, i) => {
+        const f = fixtures[i];
+        return (
+          <span
+            key={i}
+            className={`${fdrTone(f ? f.difficulty : null)} min-w-0 flex-1 truncate border-l border-black/25 text-center text-[8.5px] leading-[13px] font-semibold tabular-nums first:border-l-0`}
+          >
+            {f?.label}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 /** The player's photo alone; the kit is only rendered (in its place) if the photo fails to load. */
 function PlayerPhoto({
   src,
@@ -129,7 +155,7 @@ function PlayerPhoto({
 }) {
   const [failed, setFailed] = useState(false);
   if (failed)
-    return <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-11 sm:size-12 ${className}`} />;
+    return <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-10 sm:size-12 ${className}`} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element -- tiny remote PNGs; the image optimiser would add a server hop
     <img
@@ -140,7 +166,7 @@ function PlayerPhoto({
       loading="lazy"
       decoding="async"
       draggable={false}
-      className={`relative block size-11 object-contain object-bottom sm:size-12 ${className}`}
+      className={`relative block size-10 object-contain object-bottom sm:size-12 ${className}`}
       onError={() => setFailed(true)}
     />
   );

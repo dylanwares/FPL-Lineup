@@ -15,7 +15,7 @@ import { useGwView } from "./hooks";
 import { teamRating } from "./lazy-parts";
 import { metricPills, pastPills, photoUrl, type Metric } from "./metrics";
 import type { FixturePoints } from "@/lib/fpl/types";
-import { engineContext, playerFlag } from "./model";
+import { engineContext, playerFlag, upcomingFixtures } from "./model";
 import { loadPast, tapPlayer, usePlanner, type PastState } from "./store";
 
 export type Role = "C" | "V" | undefined;
@@ -31,6 +31,8 @@ export function tokenProps(
   photos: boolean,
   /** Past gameweeks: what the player scored, which replaces the metric. */
   scored: FixturePoints[] | undefined,
+  /** What the manager paid for the player, for the selling price. */
+  purchase: number | undefined,
 ): Omit<PlayerTokenProps, "onClick"> {
   if (isEmptySlot(id)) {
     const pos = data.playerById.get(-id)?.pos ?? "MID";
@@ -38,6 +40,7 @@ export function tokenProps(
       name: "Empty",
       kit: NO_KIT,
       metrics: [{ label: pos, difficulty: null }],
+      upcoming: [],
       empty: true,
       captain: role,
     };
@@ -45,12 +48,15 @@ export function tokenProps(
   const player = data.playerById.get(id);
   const team = player && data.teamById.get(player.team);
   if (!player || !team) return { name: "Unknown", kit: NO_KIT, metrics: [] };
-  const { pills, blank } = scored ? pastPills(data, player, scored) : metricPills(data, player, gw, metric);
+  const { pills, blank } = scored
+    ? pastPills(data, player, scored)
+    : metricPills(data, player, gw, metric, purchase);
   return {
     name: player.name,
     kit: team.kit,
     goalkeeper: player.pos === "GKP",
     metrics: pills,
+    upcoming: upcomingFixtures(data, player.team, gw),
     blank,
     photo: photos ? photoUrl(player) : undefined,
     captain: role,
@@ -83,10 +89,12 @@ const PitchPlayer = memo(function PitchPlayer({
   dimmed,
   lifted,
   targeted,
+  purchase,
 }: {
   id: number;
   gw: number;
   role: Role;
+  purchase: number | undefined;
   selected: boolean;
   dimmed: boolean;
   lifted: boolean;
@@ -97,8 +105,8 @@ const PitchPlayer = memo(function PitchPlayer({
   const photos = usePlanner((s) => s.photos);
   const scored = usePlanner((s) => scoredIn(s.past[gw], id, !!s.team && gw < s.team.planFromGw));
   const props = useMemo(
-    () => tokenProps(data, id, gw, role, metric, photos, scored),
-    [data, id, gw, role, metric, photos, scored],
+    () => tokenProps(data, id, gw, role, metric, photos, scored, purchase),
+    [data, id, gw, role, metric, photos, scored, purchase],
   );
   const onClick = useCallback(() => tapPlayer(id), [id]);
   return (
@@ -142,14 +150,24 @@ const gestures: PitchGestures = {
 const attachGhost = (el: HTMLDivElement | null) => gestureModule?.attachGhost(el);
 
 /** The copy of the dragged player that follows the finger. */
-function DragGhost({ id, gw, role }: { id: number; gw: number; role: Role }) {
+function DragGhost({
+  id,
+  gw,
+  role,
+  purchase,
+}: {
+  id: number;
+  gw: number;
+  role: Role;
+  purchase: number | undefined;
+}) {
   const data = usePlanner((s) => s.data)!;
   const metric = usePlanner((s) => s.metric);
   const photos = usePlanner((s) => s.photos);
   const scored = usePlanner((s) => scoredIn(s.past[gw], id, !!s.team && gw < s.team.planFromGw));
   const props = useMemo(
-    () => tokenProps(data, id, gw, role, metric, photos, scored),
-    [data, id, gw, role, metric, photos, scored],
+    () => tokenProps(data, id, gw, role, metric, photos, scored, purchase),
+    [data, id, gw, role, metric, photos, scored, purchase],
   );
   return (
     <div
@@ -211,6 +229,7 @@ export function PitchView() {
   if (!squad) return swipeArea(<PlannerSkeleton />);
 
   const { slots, captain, vice } = squad;
+  const purchases = view.kind === "plan" ? view.state.purchase : undefined;
   const role = (id: number): Role => (id === captain ? "C" : id === vice ? "V" : undefined);
   const rows = formationRows(slots, engineContext(data).position);
   const player = (id: number, withRole: boolean) => (
@@ -218,6 +237,7 @@ export function PitchView() {
       key={id}
       id={id}
       gw={gw}
+      purchase={purchases?.[id]}
       role={withRole ? role(id) : undefined}
       selected={dragFrom === null && selected === id}
       dimmed={targets !== null && id !== source && !targets.has(id)}
@@ -250,6 +270,7 @@ export function PitchView() {
         <DragGhost
           id={dragFrom}
           gw={gw}
+          purchase={purchases?.[dragFrom]}
           role={slots.indexOf(dragFrom) < STARTERS ? role(dragFrom) : undefined}
         />
       )}

@@ -1,7 +1,7 @@
 import type { Kit } from "@/config/kits";
 import { KIT_SHAPES } from "@/components/Kit";
 import { PENALTY_SPOT, PITCH_LINES } from "@/components/pitch/Pitch";
-import type { TokenMetric } from "@/components/pitch/PlayerToken";
+import { UPCOMING_SLOTS, type TokenMetric } from "@/components/pitch/PlayerToken";
 
 /*
  * The share image: the lineup drawn straight onto a 1080×1350 (4:5) canvas,
@@ -17,6 +17,8 @@ export interface ShareToken {
   kit: Kit;
   goalkeeper?: boolean;
   metrics: TokenMetric[];
+  /** The next matches, a strip between the name and the metric. */
+  upcoming?: TokenMetric[];
   blank?: boolean;
   captain?: "C" | "V";
   flag?: "doubt" | "injured";
@@ -60,12 +62,13 @@ const NEUTRAL: [string, string] = ["rgb(255 255 255 / 0.12)", "rgb(255 255 255 /
 const M = 40; // page margin
 const PITCH = { x: M, y: 180, w: WIDTH - 2 * M, h: HEIGHT - 180 - 70 };
 const BOARD_H = 64;
-const BENCH_H = 270;
+const BENCH_H = 274;
 const TOKEN_W = 150;
-const KIT = 104;
-const NAME_H = 36;
-const PILL_H = 32;
-const TOKEN_H = KIT + NAME_H + PILL_H;
+const KIT = 92;
+const NAME_H = 34;
+const STRIP_H = 20;
+const PILL_H = 30;
+const TOKEN_H = KIT + NAME_H + STRIP_H + PILL_H;
 
 export function drawLineup(ctx: CanvasRenderingContext2D, scene: ShareScene, style: ShareStyle) {
   const font = (weight: number, size: number, face: "sans" | "display" = "sans") =>
@@ -318,7 +321,7 @@ function drawToken(
 
   if (t.empty) {
     ctx.beginPath();
-    ctx.arc(cx, y + KIT / 2 + 4, 46, 0, Math.PI * 2);
+    ctx.arc(cx, y + KIT / 2 + 4, KIT * 0.44, 0, Math.PI * 2);
     ctx.fillStyle = "rgb(0 0 0 / 0.2)";
     ctx.fill();
     ctx.setLineDash([10, 8]);
@@ -361,8 +364,32 @@ function drawToken(
   ctx.textBaseline = "middle";
   ctx.fillText(fit(ctx, t.name, TOKEN_W - 14), cx, nameY + NAME_H / 2 + 1);
 
+  // The next matches: three difficulty-coloured cells between the name and the metric.
+  if (t.upcoming) {
+    const stripY = nameY + NAME_H;
+    const cell = TOKEN_W / UPCOMING_SLOTS;
+    ctx.fillStyle = "rgb(8 5 16 / 0.85)";
+    ctx.fillRect(x, stripY, TOKEN_W, STRIP_H);
+    ctx.font = font(600, 15);
+    for (let i = 0; i < UPCOMING_SLOTS; i++) {
+      const f = t.upcoming[i];
+      const [bg, fg] =
+        !f || f.difficulty == null ? NEUTRAL : style.fdr[Math.min(5, Math.max(1, f.difficulty)) - 1];
+      ctx.fillStyle = bg;
+      ctx.fillRect(x + i * cell, stripY, cell, STRIP_H);
+      if (i > 0) {
+        ctx.fillStyle = "rgb(0 0 0 / 0.25)";
+        ctx.fillRect(x + i * cell, stripY, 1.5, STRIP_H);
+      }
+      if (f) {
+        ctx.fillStyle = fg;
+        ctx.fillText(fit(ctx, f.label, cell - 4), x + i * cell + cell / 2, stripY + STRIP_H / 2 + 1);
+      }
+    }
+  }
+
   // Metric pill(s): split evenly in a double gameweek, a dash in a blank.
-  const pillY = nameY + NAME_H;
+  const pillY = nameY + NAME_H + (t.upcoming ? STRIP_H : 0);
   const metrics = t.metrics.length ? t.metrics : [{ label: "—", difficulty: null }];
   ctx.save();
   ctx.beginPath();

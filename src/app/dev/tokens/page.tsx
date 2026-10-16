@@ -83,7 +83,7 @@ function PlannerMock() {
       <div className="flex items-center gap-2">
         <PillButton size="sm" className="min-w-0 flex-1 justify-between">
           <span className="truncate">
-            <span className="text-muted">Show </span>Next fixture
+            <span className="text-muted">Show </span>Projected points
           </span>
           <ChevronDown className="size-4 text-muted" />
         </PillButton>
