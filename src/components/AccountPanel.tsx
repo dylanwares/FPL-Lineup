@@ -4,15 +4,32 @@ import { useEffect, useRef } from "react";
 import { openSignIn, signOut, useAccount } from "@/account/account";
 import { Download, Logout, Mail } from "@/components/ui/Icons";
 import { disconnect, showToast, usePlanner } from "@/planner/store";
+import { useSyncStatus } from "@/sync/status";
 import { startInstall, useInstallMode } from "./pwa/install";
 
 const ITEM =
   "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm outline-none hover:bg-[var(--line)] focus-visible:bg-[var(--line)]";
 
+function syncLabel(state: ReturnType<typeof useSyncStatus.getState>["state"]): string {
+  switch (state) {
+    case "syncing":
+      return "Syncing plans…";
+    case "synced":
+      return "Plans synced";
+    case "offline":
+      return "Offline: changes will sync later";
+    case "error":
+      return "Couldn’t sync just now: will retry";
+    default:
+      return "Plans sync across your devices";
+  }
+}
+
 /** The account menu's contents: sign-in, the connected FPL team, Change FPL team, and Install app. */
 export function AccountPanel({ close }: { close: () => void }) {
   const team = usePlanner((s) => s.team);
   const account = useAccount((s) => s);
+  const sync = useSyncStatus((s) => s);
   const installable = useInstallMode() !== null;
   const panel = useRef<HTMLDivElement>(null);
 
@@ -36,6 +53,9 @@ export function AccountPanel({ close }: { close: () => void }) {
               <div className="px-3 pt-2 pb-1">
                 <p className="text-[11px] text-muted">Signed in as</p>
                 <p className="truncate text-sm font-semibold">{account.email}</p>
+                <p className="mt-0.5 text-[11px] text-muted" data-testid="sync-status">
+                  {syncLabel(sync.state)}
+                </p>
               </div>
               <button
                 type="button"

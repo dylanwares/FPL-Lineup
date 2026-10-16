@@ -62,6 +62,9 @@ export const plans = pgTable(
     moves: jsonb("moves").$type<Move[]>().notNull(),
     version: integer("version").notNull().default(1),
     createdAt: createdAt(),
+    /** When the plan was last edited, on whichever device: for "most recent" ordering. */
+    editedAt: timestamp("edited_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When the server last wrote the row: incremental sync asks for rows changed after a time. */
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },

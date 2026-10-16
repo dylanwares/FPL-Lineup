@@ -21,6 +21,16 @@ test("sign in with an emailed code, then sign out", async ({ page, planner }) =>
     signedIn = true;
     await r.fulfill({ json: { token: "t", user: USER } });
   });
+  // Plan sync, which starts on sign-in: an empty account.
+  await page.route(/\/api\/plans(\?.*)?$/, (r) => r.fulfill({ json: { plans: [] } }));
+  await page.route(/\/api\/plans\/.+/, (r) =>
+    r.fulfill({
+      json: {
+        plan: { ...r.request().postDataJSON()?.plan, version: 1, syncedAt: Date.now(), deletedAt: null },
+      },
+    }),
+  );
+  await page.route(/\/api\/teams(\/\d+)?$/, (r) => r.fulfill({ json: { teams: [] } }));
   await page.route("**/api/auth/sign-out", async (r) => {
     signedIn = false;
     await r.fulfill({ json: { success: true } });
@@ -45,6 +55,7 @@ test("sign in with an emailed code, then sign out", async ({ page, planner }) =>
 
   await page.getByRole("button", { name: "Account" }).click();
   await expect(page.getByRole("menu", { name: "Account" })).toContainText(USER.email);
+  await expect(page.getByTestId("sync-status")).toHaveText("Plans synced");
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Signed out" })).toBeVisible();
   await page.getByRole("button", { name: "Account" }).click();

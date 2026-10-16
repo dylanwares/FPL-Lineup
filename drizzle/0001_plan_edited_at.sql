@@ -1,0 +1,1 @@
+ALTER TABLE "plans" ADD COLUMN "edited_at" timestamp with time zone DEFAULT now() NOT NULL;

@@ -5,6 +5,8 @@ import type { Db } from "./types";
 
 /** A plan as stored for a signed-in user: the device's plan plus its sync state. */
 export interface StoredPlan extends Plan {
+  /** When the server last wrote it (deletions included), epoch ms: the sync cursor. */
+  syncedAt: number;
   /** Bumped on every save; a save must name the version it was based on. */
   version: number;
   /** Set when the plan was deleted (kept so other devices hear about it). Epoch ms. */
@@ -26,7 +28,8 @@ function toPlan(row: PlanRow): StoredPlan {
     base: row.baseSnapshot,
     moves: row.moves,
     createdAt: row.createdAt.getTime(),
-    updatedAt: row.updatedAt.getTime(),
+    updatedAt: row.editedAt.getTime(),
+    syncedAt: row.updatedAt.getTime(),
     version: row.version,
     deletedAt: row.deletedAt ? row.deletedAt.getTime() : null,
   };
@@ -86,6 +89,7 @@ export async function savePlan(
     baseGw: plan.base.gw,
     baseSnapshot: plan.base,
     moves: plan.moves,
+    editedAt: new Date(plan.updatedAt),
   };
 
   if (baseVersion === null) {

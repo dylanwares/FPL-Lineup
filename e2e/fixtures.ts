@@ -9,7 +9,7 @@ import entry1 from "../src/lib/fpl/__fixtures__/entry-1.json";
  * app's current next gameweek. Squad: XI 82 | 8 277 114 | 124 154 12 368 |
  * 165 411 569, bench 302, 31, 565, 387. Captain 12, vice 154. 3 free transfers (Wildcard GW3 and Free Hit GW5 keep, not add).
  */
-async function mockTeam(page: Page) {
+export async function mockTeam(page: Page) {
   const version = await (await page.request.get("/api/version")).json();
   const nextGw: number = version.nextGw;
   const bootstrap: FplBootstrapSlim = {

@@ -80,12 +80,12 @@ export function newPlan(team: TeamImport, name = "Main plan", now = Date.now()):
  * Moves a plan onto a fresh import (e.g. after a deadline passes): the new
  * squad becomes the base and moves for gameweeks now in the past are dropped.
  */
-export function rebasePlan(plan: Plan, team: TeamImport, now = Date.now()): Plan {
+export function rebasePlan(plan: Plan, team: TeamImport): Plan {
+  // Not an edit (every device re-fits for itself), so "last edited" stays as it was.
   return {
     ...plan,
     base: snapshotFromImport(team),
     moves: plan.moves.filter((m) => m.gw >= team.planFromGw),
-    updatedAt: now,
   };
 }
 

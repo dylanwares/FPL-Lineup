@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { ChipName } from "@/config/rules";
 import { readPlans, readTeam, writePlan, writeTeam } from "@/data/db";
+import { scheduleSync } from "@/sync/trigger";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
 import { cancelChip, playChip } from "@/engine/chips";
@@ -112,8 +113,12 @@ function rememberEntryId(id: number | null) {
   }
 }
 
-export function persistPlan(plan: Plan) {
-  writePlan(plan).catch((err: unknown) => console.warn("Couldn't save plan", err));
+/** Saves a plan on the device. `edit` (the default) also queues it for sync; see writePlan. */
+export function persistPlan(plan: Plan, edit = true) {
+  writePlan(plan, { edit }).then(
+    () => edit && scheduleSync(),
+    (err: unknown) => console.warn("Couldn't save plan", err),
+  );
 }
 
 function storedPlanId(entryId: number): string | null {
@@ -153,6 +158,24 @@ export function commitPlan(next: Plan) {
       : [...plans, next].sort(byCreated),
   });
   persistPlan(next);
+}
+
+/**
+ * Re-reads the team's plans after a sync changed them, keeping the plan on
+ * screen if it's still there (else the most recently edited one).
+ */
+export async function reloadPlans() {
+  const { team, plan } = get();
+  if (!team) return;
+  const plans = await readPlans(team.entryId).catch(() => null);
+  if (!plans) return;
+  if (plans.length === 0) {
+    const fresh = newPlan(team);
+    persistPlan(fresh);
+    plans.push(fresh);
+  }
+  const current = plans.find((p) => p.id === plan?.id) ?? pickPlan(plans, team.entryId)!;
+  set({ plans: plans.sort(byCreated), plan: current });
 }
 
 /* ---------------- Network ---------------- */
@@ -212,7 +235,8 @@ export async function connect(entryId: number) {
     const stored = await readPlans(entryId).catch(() => [] as Plan[]);
     const plans = stored.length ? stored.map((p) => rebasePlan(p, team)) : [newPlan(team)];
     await writeTeam(team).catch(() => {});
-    plans.forEach(persistPlan);
+    // Re-fitting stored plans to the squad isn't an edit (every device does it); a new plan is.
+    plans.forEach((p) => persistPlan(p, !stored.length));
     rememberEntryId(entryId);
     const plan = pickPlan(plans, entryId)!;
     set({
@@ -239,7 +263,7 @@ export async function refreshTeam() {
     // Every plan for the team moves onto the new squad, not just the one on screen.
     const plans = get().plans.map((p) => rebasePlan(p, fresh));
     await writeTeam(fresh).catch(() => {});
-    plans.forEach(persistPlan);
+    plans.forEach((p) => persistPlan(p, false));
     const gw = Math.max(get().gw, fresh.planFromGw);
     const current = plans.find((p) => p.id === get().plan?.id) ?? plans[0];
     set({ team: fresh, plan: current, plans, gw, past: {}, refreshing: false });
