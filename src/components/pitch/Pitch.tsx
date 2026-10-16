@@ -7,11 +7,14 @@ export function Pitch({
   children,
   mode = null,
   corner,
+  cornerLeft,
   className = "",
 }: {
   children: React.ReactNode;
   /** Pinned to the pitch's top-right corner, beside the goalkeeper (e.g. the expected points). */
   corner?: React.ReactNode;
+  /** Pinned to the top-left corner, mirroring `corner` (e.g. the team rating). */
+  cornerLeft?: React.ReactNode;
   /** The active mode, outlined round the pitch: mint for subs, violet for transfers. */
   mode?: "sub" | "transfer" | null;
   className?: string;
@@ -31,6 +34,7 @@ export function Pitch({
         <PitchLines />
         <div className="absolute inset-0 flex flex-col justify-around pt-1 pb-6">{children}</div>
         {/* In the strip between the penalty box and the touchline, below the goal line: even gaps, scaled in %. */}
+        {cornerLeft && <div className="absolute top-[3.2%] left-[4.6%]">{cornerLeft}</div>}
         {corner && <div className="absolute top-[3.2%] right-[4.6%]">{corner}</div>}
       </div>
     </div>

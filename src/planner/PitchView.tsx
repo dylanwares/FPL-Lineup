@@ -12,6 +12,7 @@ import { isEmptySlot, STARTERS } from "@/engine/types";
 import { PlannerSkeleton } from "./PlannerSkeleton";
 import { ProjectedPoints } from "./ProjectedPoints";
 import { useGwView } from "./hooks";
+import { teamRating } from "./lazy-parts";
 import { metricPills, pastPills, photoUrl, type Metric } from "./metrics";
 import type { FixturePoints } from "@/lib/fpl/types";
 import { engineContext, playerFlag } from "./model";
@@ -238,6 +239,7 @@ export function PitchView() {
                 : null
         }
         corner={view.kind === "plan" ? <ProjectedPoints state={view.state} /> : undefined}
+        cornerLeft={view.kind === "plan" ? <teamRating.Lazy state={view.state} /> : undefined}
       >
         {rows.map((row, i) => (
           <PitchRow key={i}>{row.map((id) => player(id, true))}</PitchRow>

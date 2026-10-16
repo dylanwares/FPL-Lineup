@@ -2,9 +2,12 @@
 
 import { useMemo } from "react";
 import type { GwState } from "@/engine/types";
+import { CornerStat } from "./CornerStat";
 import { engineContext } from "./model";
 import { projectGw } from "./projection";
 import { usePlanner } from "./store";
+
+const points = (n: number) => n.toFixed(1);
 
 /**
  * The planned gameweek's expected points, pinned to the pitch's top-right
@@ -16,7 +19,7 @@ export function ProjectedPoints({ state }: { state: GwState }) {
   const p = useMemo(() => projectGw(data, state, engineContext(data).rules), [data, state]);
 
   const name = (id: number) => data.playerById.get(id)?.name ?? "Unknown";
-  const value = p.unknown ? "–" : p.net.toFixed(1);
+  const value = p.unknown ? null : p.net;
   const details = p.unknown
     ? [`No projections for GW${state.gw} yet`]
     : [
@@ -28,23 +31,13 @@ export function ProjectedPoints({ state }: { state: GwState }) {
       ].filter((d): d is string => !!d);
 
   return (
-    // .glass-pill sets position: relative, so the pitch positions a wrapper round this.
-    <div
-      data-testid="projected-points"
-      role="img"
-      aria-label={`${value} expected points in GW${state.gw}. ${details.join(". ")}`}
-      title={details.join("\n")}
-      className="glass-pill flex size-16 flex-col items-center justify-center gap-1 rounded-xl"
-    >
-      <span
-        data-testid="projected-total"
-        className="font-display text-lg leading-none font-bold text-fg tabular-nums"
-      >
-        {value}
-      </span>
-      <span className="text-center text-[8px] leading-[1.15] font-medium tracking-[0.06em] text-muted uppercase">
-        expected points
-      </span>
-    </div>
+    <CornerStat
+      testId="projected-points"
+      value={value}
+      format={points}
+      caption="expected points"
+      label={`${value === null ? "–" : points(value)} expected points in GW${state.gw}`}
+      details={details}
+    />
   );
 }

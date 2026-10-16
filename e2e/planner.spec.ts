@@ -503,7 +503,7 @@ test("expected points on the pitch apply the armband and Triple Captain", async 
   test.skip(planner.nextGw > 19, "needs the first-half Triple Captain");
   const n = await names(page);
   const badge = page.getByTestId("projected-points");
-  const total = badge.getByTestId("projected-total");
+  const total = badge.getByTestId("projected-points-value");
   await expect(badge).toContainText("expected points");
   await expect(total).toHaveText(/^\d+\.\d$/);
   await expect(badge).toHaveAttribute("aria-label", new RegExp(`Captain ${n[12]} ×2`));
@@ -512,6 +512,17 @@ test("expected points on the pitch apply the armband and Triple Captain", async 
   await page.locator('[data-chip="3xc"]').click();
   await expect(badge).toHaveAttribute("aria-label", new RegExp(`Captain ${n[12]} ×3`));
   await expect.poll(async () => Number(await total.textContent())).toBeGreaterThan(before);
+});
+
+test("the team rating compares the XI with the best £100.0m team", async ({ page, planner }) => {
+  void planner;
+  const rating = page.getByTestId("team-rating");
+  await expect(rating).toContainText("team rating");
+  await expect(rating.getByTestId("team-rating-value")).toHaveText(/^\d{1,3}%$/);
+  await expect(rating).toHaveAttribute("aria-label", /of the best £100\.0m team's \d+\.\d xP/);
+  const pct = Number((await rating.getByTestId("team-rating-value").textContent())!.replace("%", ""));
+  expect(await rating.getByTestId("team-rating-meter").getAttribute("style")).toContain(`width: ${pct}%`);
+  await expect(rating).toHaveAttribute("aria-label", /Best XI: (.+, ){10}/);
 });
 
 test("past gameweeks show each player's points and opponent, whatever the metric", async ({
@@ -553,6 +564,7 @@ test("past gameweeks show each player's points and opponent, whatever the metric
   await expect(page.getByLabel("Show under each player")).toBeDisabled();
   await expect(page.getByText("Points scored")).toBeVisible();
   await expect(page.getByTestId("projected-points")).toHaveCount(0);
+  await expect(page.getByTestId("team-rating")).toHaveCount(0);
 
   // Back in a planned gameweek the chosen metric returns.
   await page.getByRole("button", { name: "Next gameweek" }).click();

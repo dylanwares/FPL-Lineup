@@ -1,4 +1,6 @@
+import { createElement } from "react";
 import { lazyComponent } from "@/lib/lazy";
+import { CornerStat } from "./CornerStat";
 
 /*
  * Parts of the planner that only appear after a tap (or, for the history,
@@ -12,6 +14,17 @@ export const planHistory = lazyComponent(() => import("./PlanHistory").then((m) 
 /** Toasts only follow an edit, by which time this has loaded. */
 export const toaster = lazyComponent(() => import("./Toaster").then((m) => m.Toaster));
 export const shareSheet = lazyComponent(() => import("@/share/ShareSheet").then((m) => m.default));
+/** Its solver is a few KB, so the box shows "–" for the moment it takes to arrive. */
+export const teamRating = lazyComponent(
+  () => import("./TeamRating").then((m) => m.TeamRating),
+  createElement(CornerStat, {
+    testId: "team-rating",
+    value: null,
+    format: String,
+    caption: "team rating",
+    label: "Team rating",
+  }),
+);
 export const planMenus = lazyComponent(() => import("./PlanMenus").then((m) => m.PlanMenus));
 
 export function preloadOnIdle(): () => void {
@@ -20,6 +33,7 @@ export function preloadOnIdle(): () => void {
       playerSheet.preload(),
       playerList.preload(),
       planMenus.preload(),
+      teamRating.preload(),
       toaster.preload(),
     ]).catch(() => {});
   if ("requestIdleCallback" in window) {
