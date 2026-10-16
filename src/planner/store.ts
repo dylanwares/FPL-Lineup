@@ -17,6 +17,7 @@ import { CHIP_NAMES, engineContext, formatPrice, newPlan, planResult, rebasePlan
 const ENTRY_KEY = "fpl-lineup:entry";
 const METRIC_KEY = "fpl-lineup:metric";
 const PHOTOS_KEY = "fpl-lineup:photos";
+const GUIDE_KEY = "fpl-lineup:guide-seen";
 const planKey = (entryId: number) => `fpl-lineup:plan:${entryId}`;
 
 export type Phase = "booting" | "connect" | "importing" | "ready";
@@ -64,6 +65,8 @@ export interface PlannerState {
   dragFrom: number | null;
   dragOver: number | null;
   toasts: Toast[];
+  /** The planner guide (the first-run tour) is showing. */
+  guide: boolean;
 }
 
 export const usePlanner = create<PlannerState>(() => ({
@@ -88,6 +91,7 @@ export const usePlanner = create<PlannerState>(() => ({
   dragFrom: null,
   dragOver: null,
   toasts: [],
+  guide: false,
 }));
 
 const set = usePlanner.setState;
@@ -637,4 +641,29 @@ export function setMetric(metric: Metric) {
 export function setPhotos(photos: boolean) {
   set({ photos });
   remember(PHOTOS_KEY, photos ? "1" : "0");
+}
+
+/* ---------------- Planner guide ---------------- */
+
+/** Whether this device has yet to see the guide. Blocked storage counts as seen, so it can't show every visit. */
+export function guideDue(): boolean {
+  try {
+    return !localStorage.getItem(GUIDE_KEY);
+  } catch {
+    return false;
+  }
+}
+
+/** Starts the guide on the next gameweek to plan, with nothing open or picked over the pitch. */
+export function openGuide() {
+  const { team } = get();
+  if (!team) return;
+  set({ guide: true, sheetPlayer: null, planUi: null, mode: "none", selected: null, oneShot: false });
+  setGw(team.planFromGw);
+}
+
+/** Ends the guide (finished or skipped); it won't show by itself again on this device. */
+export function closeGuide() {
+  set({ guide: false });
+  remember(GUIDE_KEY, "1");
 }

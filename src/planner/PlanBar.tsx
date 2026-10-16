@@ -44,6 +44,7 @@ export function PlanBar() {
           size="icon"
           aria-label="Share lineup"
           title="Share lineup"
+          data-guide="share"
           onPointerEnter={preloadShare}
           onPointerDown={preloadShare}
           onFocus={preloadShare}

@@ -37,7 +37,16 @@ export async function mockTeam(page: Page) {
   return team;
 }
 
-export const test = base.extend<{ planner: { nextGw: number } }>({
+/** Marks the planner guide as seen, so it doesn't cover the page. */
+export const skipGuide = () => localStorage.setItem("fpl-lineup:guide-seen", "1");
+
+export const test = base.extend<{ planner: { nextGw: number }; guide: boolean }>({
+  /** Whether the first-run guide may show; only its own tests turn it on. */
+  guide: [false, { option: true }],
+  page: async ({ page, guide }, provide) => {
+    if (!guide) await page.addInitScript(skipGuide);
+    await provide(page);
+  },
   // Named `provide` (not `use`) so the React hooks lint rule doesn't mistake it for a hook.
   planner: async ({ page }, provide) => {
     const team = await mockTeam(page);

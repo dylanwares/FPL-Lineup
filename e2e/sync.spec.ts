@@ -1,5 +1,5 @@
 import { expect as baseExpect, test, type BrowserContext, type Page } from "@playwright/test";
-import { mockTeam } from "./fixtures";
+import { mockTeam, skipGuide } from "./fixtures";
 
 /*
  * Two devices signed in to one account. The account server is faked here
@@ -31,6 +31,7 @@ function fakeAccount() {
   const tick = () => ++clock;
 
   async function install(ctx: BrowserContext) {
+    await ctx.addInitScript(skipGuide);
     await ctx.route("**/api/auth/get-session", (r) => r.fulfill({ json: { user: USER, session: {} } }));
     await ctx.route(/\/api\/plans(\?.*)?$/, (r) => {
       const raw = new URL(r.request().url()).searchParams.get("since");

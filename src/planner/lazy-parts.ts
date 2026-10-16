@@ -25,6 +25,8 @@ export const teamRating = lazyComponent(
     label: "Team rating",
   }),
 );
+/** The first-run tour: once per device, so it loads only when it's due (or replayed). */
+export const plannerGuide = lazyComponent(() => import("./PlannerGuide").then((m) => m.PlannerGuide));
 export const planMenus = lazyComponent(() => import("./PlanMenus").then((m) => m.PlanMenus));
 
 export function preloadOnIdle(): () => void {

@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { currentTab } from "@/components/nav";
+import { currentTab, useTab } from "@/components/nav";
 import { ChipsRow } from "./ChipsRow";
 import { GwNav } from "./GwNav";
 import { MetricRow } from "./MetricRow";
-import { planHistory, playerList, playerSheet, preloadOnIdle, toaster } from "./lazy-parts";
+import { planHistory, playerList, playerSheet, plannerGuide, preloadOnIdle, toaster } from "./lazy-parts";
 import { ModeBar } from "./ModeBar";
 import { PitchView } from "./PitchView";
 import { PlanBar } from "./PlanBar";
 import { StatsRow } from "./StatsRow";
-import { clearSelection, exitMode, stepGw, usePlanner } from "./store";
+import { clearSelection, exitMode, guideDue, openGuide, stepGw, usePlanner } from "./store";
+
+/** How long the planner settles on screen before the first-run guide starts. */
+const GUIDE_DELAY_MS = 700;
 
 export function PlannerScreen() {
   // ← / → change gameweek on desktop; Escape cancels a selection, then the mode.
@@ -32,6 +35,14 @@ export function PlannerScreen() {
 
   useEffect(preloadOnIdle, []);
 
+  // The first time the planner appears on this device, the guide follows (loading meanwhile).
+  useEffect(() => {
+    if (!guideDue()) return;
+    void plannerGuide.preload().catch(() => {});
+    const id = setTimeout(openGuide, GUIDE_DELAY_MS);
+    return () => clearTimeout(id);
+  }, []);
+
   return (
     <div className="flex flex-col gap-3 py-4">
       <PlanBar />
@@ -45,6 +56,7 @@ export function PlannerScreen() {
       <Sheet />
       <TransferList />
       <Toasts />
+      <Guide />
     </div>
   );
 }
@@ -57,6 +69,13 @@ function TransferList() {
 function Sheet() {
   const open = usePlanner((s) => s.sheetPlayer !== null);
   return open ? <playerSheet.Lazy /> : null;
+}
+
+/** The guide waits for the Planner tab (it may be due while Fixtures is on screen). */
+function Guide() {
+  const open = usePlanner((s) => s.guide);
+  const tab = useTab();
+  return open && tab === "planner" ? <plannerGuide.Lazy /> : null;
 }
 
 function Toasts() {
