@@ -59,6 +59,16 @@ export function getDb(): Promise<IDBPDatabase<LineupDB>> {
       }
       if (oldVersion < 3) db.createObjectStore("planSync", { keyPath: "id" });
     },
+    // A newer version of the app (another tab, or the installed app) needs to upgrade the
+    // database: step aside and reload into the new version, rather than leave it waiting.
+    blocking() {
+      void dbPromise?.then((db) => db.close());
+      dbPromise = null;
+      location.reload();
+    },
+    blocked() {
+      console.warn("Waiting for other FPL Lineup tabs to close before updating saved data");
+    },
   }).catch((err: unknown) => {
     dbPromise = null;
     throw err;

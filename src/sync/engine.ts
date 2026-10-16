@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount } from "@/account/account";
+import { checkSession, useAccount } from "@/account/account";
 import { getDb, readTeam, type PlanSync } from "@/data/db";
 import type { Plan } from "@/engine/types";
 import { rebasePlan, uniquePlanName } from "@/planner/model";
@@ -90,10 +90,10 @@ async function syncOnce() {
     await afterChange(changed);
   } catch (err) {
     if (err instanceof HttpError && err.status === 401) {
-      // The session ended on the server (signed out elsewhere, or expired).
-      useSyncStatus.setState({ state: "idle" });
-      useAccount.setState({ status: "signed-out", email: null, userId: null });
-      return;
+      // Refused as signed out: ask Neon Auth, which has the final say (the session may have
+      // ended elsewhere). If it still says signed in, treat this as a failed sync and retry.
+      await checkSession();
+      if (useAccount.getState().status !== "signed-in") return useSyncStatus.setState({ state: "idle" });
     }
     console.warn("Plan sync failed", err);
     useSyncStatus.setState({ state: navigator.onLine ? "error" : "offline" });
