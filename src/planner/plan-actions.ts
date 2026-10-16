@@ -1,5 +1,6 @@
 import { deletePlan as deleteStoredPlan } from "@/data/db";
 import type { Plan } from "@/engine/types";
+import { scheduleSync } from "@/sync/trigger";
 import { copyPlan, MAX_PLAN_NAME, newPlan, uniquePlanName } from "./model";
 import {
   byCreated,
@@ -76,7 +77,10 @@ export function deleteCurrentPlan() {
   if (fresh) rest = [fresh];
   const next = rest.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
 
-  deleteStoredPlan(plan.id).catch((err: unknown) => console.warn("Couldn't delete plan", err));
+  deleteStoredPlan(plan.id).then(
+    () => scheduleSync(),
+    (err: unknown) => console.warn("Couldn't delete plan", err),
+  );
   if (fresh) persistPlan(fresh);
   rememberPlanId(next);
   set({ plan: next, plans: rest, selected: null, sheetPlayer: null, toasts: [] });

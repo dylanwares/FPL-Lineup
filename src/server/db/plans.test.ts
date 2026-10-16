@@ -56,6 +56,13 @@ describe("savePlan", () => {
     });
   });
 
+  it("keeps the device's edit time apart from the server's write time", async () => {
+    const p = plan();
+    const saved = await savePlan(db, user, p, null);
+    expect(saved).toMatchObject({ status: "saved", plan: { updatedAt: p.updatedAt } });
+    if (saved.status === "saved") expect(saved.plan.syncedAt).toBeGreaterThan(p.updatedAt);
+  });
+
   it("updates from the current version and bumps it", async () => {
     const p = plan();
     await savePlan(db, user, p, null);
