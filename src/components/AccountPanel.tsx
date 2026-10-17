@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { openSignIn, signOut, useAccount } from "@/account/account";
-import { Download, Logout, Mail } from "@/components/ui/Icons";
-import { disconnect, showToast, usePlanner } from "@/planner/store";
+import { Download, Help, Logout, Mail } from "@/components/ui/Icons";
+import { disconnect, openGuide, showToast, usePlanner } from "@/planner/store";
+import { currentTab, goTo } from "./nav";
 import { useSyncStatus } from "@/sync/status";
 import { startInstall, useInstallMode } from "./pwa/install";
 
@@ -94,6 +95,18 @@ export function AccountPanel({ close }: { close: () => void }) {
                 <p className="text-xs text-muted">FPL team ID {team.entryId}</p>
               </div>
               <div role="separator" className="mx-2 mb-1 h-px bg-[var(--line)]" />
+              <button
+                type="button"
+                role="menuitem"
+                className={ITEM}
+                onClick={() => {
+                  close();
+                  if (currentTab() !== "planner") goTo("planner");
+                  openGuide();
+                }}
+              >
+                <Help className="size-4 text-muted" /> Planner guide
+              </button>
               <button
                 type="button"
                 role="menuitem"

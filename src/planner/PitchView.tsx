@@ -210,7 +210,7 @@ export function PitchView() {
   // the body instead lets mobile browsers widen the page to fit it, losing the scroll position.)
   const swipeArea = (content: React.ReactNode) => (
     <div className="-mx-4 overflow-x-clip px-4">
-      <div className="flex touch-pan-y flex-col gap-3" {...gestures}>
+      <div className="flex touch-pan-y flex-col gap-3" data-guide="pitch" {...gestures}>
         {content}
       </div>
     </div>
