@@ -65,3 +65,16 @@ describe("parseVersion", () => {
     expect(() => parseVersion("2")).toThrow(InputError);
   });
 });
+
+describe("parsePlan transfer prices", () => {
+  it("keeps typed transfer and removal prices, and rejects bad ones", () => {
+    const plan = valid();
+    plan.moves = [
+      { type: "transfer", gw: 7, out: 9, in: 99, sellPrice: 62, buyPrice: 55 } as never,
+      { type: "remove", gw: 7, player: 3, sellPrice: 50 } as never,
+    ];
+    expect(parsePlan(plan, ID).moves).toEqual(plan.moves);
+    plan.moves = [{ type: "remove", gw: 7, player: 3, sellPrice: 6.2 } as never];
+    expect(() => parsePlan(plan, ID)).toThrow(InputError);
+  });
+});

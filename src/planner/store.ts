@@ -5,7 +5,7 @@ import { scheduleSync } from "@/sync/trigger";
 import { loadGameData } from "@/data/load";
 import type { GameData } from "@/data/model";
 import { cancelChip, playChip } from "@/engine/chips";
-import { addMove, removeMove, resetGw, stateAt } from "@/engine/plan";
+import { addMove, removeMove, resetGw, stateAt, updateMove } from "@/engine/plan";
 import { compactPlanGw } from "@/engine/compact";
 import { canSwap } from "@/engine/squad";
 import { sellingPrice } from "@/engine/money";
@@ -550,6 +550,21 @@ export function removeMoveAt(index: number, label: string) {
   set({ selected: null });
   commitPlan(next);
   showToast(`Removed: ${label}`, { label: "Undo", run: () => restorePlan(before) });
+}
+
+/**
+ * Sets (or with `undefined`, clears) a hand-typed price on a planned transfer
+ * or removal: what the outgoing player sold for, or what the incoming one cost.
+ */
+export function setMovePrice(index: number, side: "sell" | "buy", price: number | undefined) {
+  const { plan } = get();
+  const move = plan?.moves[index];
+  if (!plan || !move || (move.type !== "transfer" && move.type !== "remove")) return;
+  if (side === "buy" && move.type !== "transfer") return;
+  const key = side === "sell" ? "sellPrice" : "buyPrice";
+  const edited = { ...move, [key]: price };
+  if (price === undefined) delete edited[key as keyof typeof edited];
+  commitPlan(updateMove(plan, index, edited as Move));
 }
 
 /** Clears every move in the gameweek on screen, with Undo. */

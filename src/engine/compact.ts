@@ -37,6 +37,17 @@ export function compactGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
   // slot they finish in.
   const startSet = new Set(start.slots);
   const endSet = new Set(end.slots);
+  // Hand-typed prices belong to the player, so they follow them into the new steps.
+  const sellAt = new Map<number, number>();
+  const buyAt = new Map<number, number>();
+  for (const m of moves) {
+    if (m.type === "remove" && m.sellPrice !== undefined) sellAt.set(m.player, m.sellPrice);
+    if (m.type !== "transfer") continue;
+    if (m.sellPrice !== undefined) sellAt.set(m.out, m.sellPrice);
+    if (m.buyPrice !== undefined) buyAt.set(m.in, m.buyPrice);
+  }
+  const sold = (id: number) => (sellAt.has(id) ? { sellPrice: sellAt.get(id)! } : {});
+  const paid = (id: number) => (buyAt.has(id) ? { buyPrice: buyAt.get(id)! } : {});
   for (const pos of ["GKP", "DEF", "MID", "FWD"] as const) {
     let outs = start.slots
       .filter((id) => !endSet.has(id) && ctx.position(id) === pos)
@@ -46,14 +57,14 @@ export function compactGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
       .sort((a, b) => end.slots.indexOf(a) - end.slots.indexOf(b));
     if (outs.length !== ins.length) return null;
     const removed = outs.filter((id) => ins.includes(emptySlot(id)));
-    for (const player of removed) steps.push({ type: "remove", gw, player });
+    for (const player of removed) steps.push({ type: "remove", gw, player, ...sold(player) });
     outs = outs.filter((id) => !removed.includes(id));
     ins = ins.filter((id) => !removed.includes(-id));
     outs.forEach((out, i) => {
       const into = ins[i];
       const player = isEmptySlot(into) ? -into : into;
-      steps.push({ type: "transfer", gw, out, in: player });
-      if (isEmptySlot(into)) steps.push({ type: "remove", gw, player });
+      steps.push({ type: "transfer", gw, out, in: player, ...sold(out), ...paid(player) });
+      if (isEmptySlot(into)) steps.push({ type: "remove", gw, player, ...sold(player) });
     });
   }
 

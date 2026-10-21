@@ -1,14 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { CaptainBadge } from "@/components/ui/Badges";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Close, Swap, Transfer, Trash } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import type { GameData } from "@/data/model";
-import { isEmptySlot, type Move } from "@/engine/types";
+import { isEmptySlot, type GwState, type Move } from "@/engine/types";
 import { useGwView } from "./hooks";
 import { CHIP_NAMES, formatPrice } from "./model";
-import { removeMoveAt, resetCurrentGw, usePlanner } from "./store";
+import { removeMoveAt, resetCurrentGw, setMovePrice, usePlanner } from "./store";
 
 /** A short, plain description of a move, used for the row and the "Removed: …" toast. */
 export function describeMove(data: GameData, move: Move): string {
@@ -71,6 +72,122 @@ function MoveIcon({ move }: { move: Move }) {
   }
 }
 
+/** "6.2", "£6.2m" → 62 tenths; null when it isn't a sensible player price. */
+function parsePrice(text: string): number | null {
+  const n = Number(text.replace(/[£m\s]/gi, ""));
+  const tenths = Math.round(n * 10);
+  return text.trim() !== "" && Number.isFinite(n) && tenths >= 10 && tenths <= 300 ? tenths : null;
+}
+
+/**
+ * A sale or purchase price, tap to edit: for a transfer already made at a
+ * price that has since changed. Clearing the field goes back to the
+ * calculated price.
+ */
+function PriceField({
+  label,
+  value,
+  edited,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  edited: boolean;
+  onChange: (price: number | undefined) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  if (draft === null) {
+    return (
+      <button
+        type="button"
+        aria-label={`${label} ${formatPrice(value)}${edited ? " (edited)" : ""}, edit`}
+        title={edited ? "Edited by you. Clear the field to use the calculated price." : "Edit price"}
+        onClick={() => setDraft((value / 10).toFixed(1))}
+        className={`rounded-md px-1 tabular-nums underline decoration-dotted underline-offset-2 hover:text-fg ${edited ? "text-violet" : ""}`}
+      >
+        {formatPrice(value)}
+      </button>
+    );
+  }
+
+  const commit = () => {
+    if (draft.trim() === "") onChange(undefined);
+    else {
+      const price = parsePrice(draft);
+      if (price !== null && price !== value) onChange(price);
+    }
+    setDraft(null);
+  };
+  return (
+    <input
+      autoFocus
+      inputMode="decimal"
+      aria-label={label}
+      placeholder="calc."
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={(e) => e.target.select()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") setDraft(null);
+      }}
+      className="h-6 w-14 rounded-md border border-[var(--line)] bg-[var(--glass-solid)] px-1.5 text-xs text-fg tabular-nums outline-none focus:border-mint"
+    />
+  );
+}
+
+/**
+ * A transfer's or removal's prices, each editable: only for a player actually
+ * sold or bought by the end of the week (not a chain's middle or a buyback).
+ */
+function MovePrices({
+  move,
+  index,
+  state,
+  data,
+}: {
+  move: Move;
+  index: number;
+  state: GwState;
+  data: GameData;
+}) {
+  if (move.type !== "transfer" && move.type !== "remove") return null;
+  const name = (id: number) => data.playerById.get(id)?.name ?? "Unknown";
+  const out = move.type === "transfer" ? move.out : move.player;
+  const sale = state.sold.includes(out) ? out : null;
+  const buy = move.type === "transfer" && state.bought.includes(move.in) ? move : null;
+  if (sale === null && !buy) return null;
+  return (
+    <span className="flex items-center gap-1 text-[11px] text-muted">
+      {sale !== null && (
+        <>
+          Sold
+          <PriceField
+            label={`${name(sale)} sold for`}
+            value={state.soldFor[sale]}
+            edited={move.sellPrice !== undefined}
+            onChange={(price) => setMovePrice(index, "sell", price)}
+          />
+        </>
+      )}
+      {sale !== null && buy && " · "}
+      {buy && (
+        <>
+          Bought
+          <PriceField
+            label={`${name(buy.in)} bought for`}
+            value={state.purchase[buy.in]}
+            edited={buy.buyPrice !== undefined}
+            onChange={(price) => setMovePrice(index, "buy", price)}
+          />
+        </>
+      )}
+    </span>
+  );
+}
+
 /** The changes planned for the gameweek on screen, in the order they were made. */
 export function PlanHistory() {
   const view = useGwView();
@@ -109,7 +226,6 @@ export function PlanHistory() {
             {rows.map(({ move, index }, i) => {
               const problem = problems.get(move);
               const label = describeMove(data, move);
-              const price = move.type === "transfer" ? data.playerById.get(move.in)?.price : undefined;
               return (
                 <li
                   key={index}
@@ -124,10 +240,8 @@ export function PlanHistory() {
                     {problem && (
                       <span className="block text-[11px] text-magenta">Not applied: {problem}</span>
                     )}
+                    {!problem && <MovePrices move={move} index={index} state={state} data={data} />}
                   </span>
-                  {price !== undefined && !problem && (
-                    <span className="shrink-0 text-xs text-muted tabular-nums">{formatPrice(price)}</span>
-                  )}
                   <button
                     type="button"
                     aria-label={`Remove: ${label}`}

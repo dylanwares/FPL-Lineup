@@ -58,14 +58,26 @@ function snapshot(v: unknown): Snapshot {
   };
 }
 
+/** An optional hand-typed transfer price, as a field to spread into the move. */
+function price<K extends string>(key: K, v: unknown): Partial<Record<K, number>> {
+  return v === undefined ? {} : ({ [key]: int(v, "transfer price", 0, 10000) } as Record<K, number>);
+}
+
 function move(v: unknown): Move {
   if (!isObject(v)) return fail("move");
   const at = gw(v.gw);
   switch (v.type) {
     case "transfer":
-      return { type: "transfer", gw: at, out: player(v.out), in: player(v.in) };
+      return {
+        type: "transfer",
+        gw: at,
+        out: player(v.out),
+        in: player(v.in),
+        ...price("sellPrice", v.sellPrice),
+        ...price("buyPrice", v.buyPrice),
+      };
     case "remove":
-      return { type: "remove", gw: at, player: player(v.player) };
+      return { type: "remove", gw: at, player: player(v.player), ...price("sellPrice", v.sellPrice) };
     case "sub":
       return { type: "sub", gw: at, a: player(v.a), b: player(v.b) };
     case "captain":

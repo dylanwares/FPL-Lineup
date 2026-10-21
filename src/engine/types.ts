@@ -34,9 +34,18 @@ export interface Snapshot {
 }
 
 export type Move =
-  | { type: "transfer"; gw: number; out: number; in: number }
+  | {
+      type: "transfer";
+      gw: number;
+      out: number;
+      in: number;
+      /** What the outgoing player sold for, in place of the calculated selling price (tenths of £1m). */
+      sellPrice?: number;
+      /** What the incoming player cost, in place of their current price (tenths of £1m). */
+      buyPrice?: number;
+    }
   /** Sells a player without a replacement, leaving an empty slot. */
-  | { type: "remove"; gw: number; player: number }
+  | { type: "remove"; gw: number; player: number; sellPrice?: number }
   | { type: "sub"; gw: number; a: number; b: number }
   | { type: "captain"; gw: number; player: number }
   | { type: "vice"; gw: number; player: number }
@@ -78,6 +87,8 @@ export interface GwState {
   chipsUsed: ChipUse[];
   sold: number[];
   bought: number[];
+  /** What each sold player went for (tenths of £1m); bought players' prices are in `purchase`. */
+  soldFor: Record<number, number>;
   warnings: Warning[];
 }
 

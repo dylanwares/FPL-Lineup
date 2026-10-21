@@ -34,6 +34,9 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
   let slots = start.slots.slice();
   let { captain, vice } = start;
   let chip: GwState["chip"] = null;
+  // Prices typed in by hand (e.g. a transfer already made at an older price); the latest wins.
+  const sellAt = new Map<number, number>();
+  const buyAt = new Map<number, number>();
 
   for (const move of moves) {
     switch (move.type) {
@@ -56,6 +59,8 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
         else {
           // The new player takes the same slot, armband included.
           slots[i] = move.in;
+          if (move.sellPrice !== undefined) sellAt.set(move.out, move.sellPrice);
+          if (move.buyPrice !== undefined) buyAt.set(move.in, move.buyPrice);
           if (captain === move.out) captain = move.in;
           if (vice === move.out) vice = move.in;
         }
@@ -69,6 +74,7 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
         else {
           // The armband stays with the empty slot and passes to whoever is bought into it.
           slots[i] = empty;
+          if (move.sellPrice !== undefined) sellAt.set(move.player, move.sellPrice);
           if (captain === move.player) captain = empty;
           if (vice === move.player) vice = empty;
         }
@@ -123,13 +129,15 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
 
   let bank = start.bank;
   const purchase = { ...start.purchase };
+  const soldFor: Record<number, number> = {};
   for (const id of sold) {
-    bank += sellingPrice(start.purchase[id] ?? ctx.price(id), ctx.price(id));
+    soldFor[id] = sellAt.get(id) ?? sellingPrice(start.purchase[id] ?? ctx.price(id), ctx.price(id));
+    bank += soldFor[id];
     delete purchase[id];
   }
   for (const id of bought) {
-    bank -= ctx.price(id);
-    purchase[id] = ctx.price(id);
+    purchase[id] = buyAt.get(id) ?? ctx.price(id);
+    bank -= purchase[id];
   }
 
   const transfers = bought.length;
@@ -158,6 +166,7 @@ export function computeGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
     chipsUsed,
     sold,
     bought,
+    soldFor,
     warnings,
   };
 }
@@ -259,6 +268,12 @@ export function addMove(plan: Plan, move: Move, now = Date.now()): Plan {
   const replaces = move.type === "captain" || move.type === "vice" || move.type === "chip";
   const moves = replaces ? plan.moves.filter((m) => !(m.gw === move.gw && m.type === move.type)) : plan.moves;
   return { ...plan, moves: [...moves, move], updatedAt: now };
+}
+
+/** Replaces one move by its position in the log (e.g. a transfer's edited prices). */
+export function updateMove(plan: Plan, index: number, move: Move, now = Date.now()): Plan {
+  if (index < 0 || index >= plan.moves.length) return plan;
+  return { ...plan, moves: plan.moves.map((m, i) => (i === index ? move : m)), updatedAt: now };
 }
 
 /** Removes the most recent move (Undo). */

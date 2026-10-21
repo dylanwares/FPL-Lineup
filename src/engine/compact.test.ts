@@ -178,3 +178,23 @@ describe("compactPlanGw with removals", () => {
     expect(gwMoves(play([{ type: "remove", player: 3 }]))).toEqual([{ type: "remove", gw: 7, player: 3 }]);
   });
 });
+
+describe("compactPlanGw with edited prices", () => {
+  it("keeps each typed price with its player when a chain collapses", () => {
+    const plan = play([
+      { type: "transfer", out: 3, in: 18, sellPrice: 50 },
+      { type: "transfer", out: 18, in: 19, buyPrice: 66 },
+    ]);
+    expect(gwMoves(plan)).toEqual([{ type: "transfer", gw: 7, out: 3, in: 19, sellPrice: 50, buyPrice: 66 }]);
+    expect(stateAt(computePlan(plan, ctx), 7)!.bank).toBe(10 + 50 - 66);
+  });
+
+  it("keeps a removal's typed sale price when the slot is filled", () => {
+    const plan = play([
+      { type: "remove", player: 3, sellPrice: 50 },
+      { type: "transfer", out: -3, in: 18, buyPrice: 60 },
+    ]);
+    expect(gwMoves(plan)).toEqual([{ type: "transfer", gw: 7, out: 3, in: 18, sellPrice: 50, buyPrice: 60 }]);
+    expect(stateAt(computePlan(plan, ctx), 7)!.bank).toBe(10 + 50 - 60);
+  });
+});

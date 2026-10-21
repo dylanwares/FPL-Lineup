@@ -187,6 +187,7 @@ describe("teamRating", () => {
     chipsUsed: [],
     sold: [],
     bought: [],
+    soldFor: {},
     warnings: [],
   });
 

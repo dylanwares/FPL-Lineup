@@ -65,6 +65,7 @@ function state(overrides: Partial<GwState> = {}): GwState {
     chipsUsed: [],
     sold: [],
     bought: [],
+    soldFor: {},
     warnings: [],
     ...overrides,
   };
