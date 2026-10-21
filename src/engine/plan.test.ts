@@ -260,3 +260,39 @@ describe("editing", () => {
     expect(resetGw(plan, 7).moves).toEqual([{ type: "transfer", gw: 8, out: 4, in: 19 }]);
   });
 });
+
+describe("edited transfer prices", () => {
+  it("uses a typed sale and purchase price in place of the calculated ones", () => {
+    const gw7 = stateAt(
+      run(withMoves([{ type: "transfer", gw: 7, out: 3, in: 18, sellPrice: 50, buyPrice: 65 }])),
+      7,
+    )!;
+    expect(gw7.soldFor[3]).toBe(50);
+    expect(gw7.purchase[18]).toBe(65);
+    expect(gw7.bank).toBe(10 + 50 - 65);
+  });
+
+  it("sells later at a selling price worked out from the typed purchase price", () => {
+    const r = computePlan(
+      withMoves([
+        { type: "transfer", gw: 7, out: 3, in: 18, buyPrice: 60 },
+        { type: "transfer", gw: 8, out: 18, in: 19 },
+      ]),
+      testContext({ prices: { 18: 64 } }),
+    );
+    expect(stateAt(r, 8)!.soldFor[18]).toBe(62); // bought 6.0, now 6.4: half the rise
+  });
+
+  it("ignores a typed price on a player who isn't sold by the end of the week", () => {
+    const gw7 = stateAt(
+      run(
+        withMoves([
+          { type: "transfer", gw: 7, out: 3, in: 18, sellPrice: 40 },
+          { type: "transfer", gw: 7, out: 18, in: 3 },
+        ]),
+      ),
+      7,
+    )!;
+    expect(gw7.bank).toBe(10);
+  });
+});

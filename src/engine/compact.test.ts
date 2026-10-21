@@ -150,3 +150,14 @@ describe("compactPlanGw", () => {
     }
   });
 });
+
+describe("compactPlanGw with edited prices", () => {
+  it("keeps each typed price with its player when transfers are re-paired", () => {
+    const plan = play([
+      { type: "transfer", out: 3, in: 18, sellPrice: 50 },
+      { type: "transfer", out: 18, in: 19, buyPrice: 66 },
+    ]);
+    expect(gwMoves(plan)).toEqual([{ type: "transfer", gw: 7, out: 3, in: 19, sellPrice: 50, buyPrice: 66 }]);
+    expect(stateAt(computePlan(plan, ctx), 7)!.bank).toBe(10 + 50 - 66);
+  });
+});

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ChipName } from "@/config/rules";
 import { CaptainBadge } from "@/components/ui/Badges";
 import { GlassPanel } from "@/components/ui/GlassPanel";
@@ -9,7 +10,7 @@ import type { GameData } from "@/data/model";
 import type { Move } from "@/engine/types";
 import { useGwView } from "./hooks";
 import { formatPrice } from "./model";
-import { removeMoveAt, resetCurrentGw, usePlanner } from "./store";
+import { removeMoveAt, resetCurrentGw, setTransferPrice, usePlanner } from "./store";
 
 const CHIP_NAMES: Record<ChipName, string> = {
   wildcard: "Wildcard",
@@ -71,6 +72,72 @@ function MoveIcon({ move }: { move: Move }) {
   }
 }
 
+/** "6.2", "£6.2m" → 62 tenths; null when it isn't a sensible player price. */
+function parsePrice(text: string): number | null {
+  const n = Number(text.replace(/[£ms]/gi, ""));
+  const tenths = Math.round(n * 10);
+  return text.trim() !== "" && Number.isFinite(n) && tenths >= 10 && tenths <= 300 ? tenths : null;
+}
+
+/**
+ * A transfer's sale or purchase price, tap to edit: for transfers already made
+ * at a price that has since changed. Clearing the field goes back to the
+ * calculated price.
+ */
+function PriceField({
+  label,
+  value,
+  edited,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  edited: boolean;
+  onChange: (price: number | undefined) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  if (draft === null) {
+    return (
+      <button
+        type="button"
+        aria-label={`${label} ${formatPrice(value)}${edited ? " (edited)" : ""}, edit`}
+        title={edited ? "Edited by you. Clear the field to use the calculated price." : "Edit price"}
+        onClick={() => setDraft((value / 10).toFixed(1))}
+        className={`rounded-md px-1 tabular-nums underline decoration-dotted underline-offset-2 hover:text-fg ${edited ? "text-violet" : ""}`}
+      >
+        {formatPrice(value)}
+      </button>
+    );
+  }
+
+  const commit = () => {
+    if (draft.trim() === "") onChange(undefined);
+    else {
+      const price = parsePrice(draft);
+      if (price !== null && price !== value) onChange(price);
+    }
+    setDraft(null);
+  };
+  return (
+    <input
+      autoFocus
+      inputMode="decimal"
+      aria-label={label}
+      placeholder="calc."
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={(e) => e.target.select()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") setDraft(null);
+      }}
+      className="h-6 w-14 rounded-md border border-[var(--line)] bg-[var(--glass-solid)] px-1.5 text-xs text-fg tabular-nums outline-none focus:border-mint"
+    />
+  );
+}
+
 /** The changes planned for the gameweek on screen, in the order they were made. */
 export function PlanHistory() {
   const view = useGwView();
@@ -109,7 +176,15 @@ export function PlanHistory() {
             {rows.map(({ move, index }, i) => {
               const problem = problems.get(move);
               const label = describeMove(data, move);
-              const price = move.type === "transfer" ? data.playerById.get(move.in)?.price : undefined;
+              // Prices only for a player actually sold and one actually bought (not a chain's middle).
+              const priced =
+                move.type === "transfer" &&
+                !problem &&
+                state.sold.includes(move.out) &&
+                state.bought.includes(move.in)
+                  ? move
+                  : null;
+              const name = (id: number) => data.playerById.get(id)?.name ?? "Unknown";
               return (
                 <li
                   key={index}
@@ -124,10 +199,25 @@ export function PlanHistory() {
                     {problem && (
                       <span className="block text-[11px] text-magenta">Not applied: {problem}</span>
                     )}
+                    {priced && (
+                      <span className="flex items-center gap-1 text-[11px] text-muted">
+                        Sold
+                        <PriceField
+                          label={`${name(priced.out)} sold for`}
+                          value={state.soldFor[priced.out]}
+                          edited={priced.sellPrice !== undefined}
+                          onChange={(price) => setTransferPrice(index, "sell", price)}
+                        />
+                        · Bought
+                        <PriceField
+                          label={`${name(priced.in)} bought for`}
+                          value={state.purchase[priced.in]}
+                          edited={priced.buyPrice !== undefined}
+                          onChange={(price) => setTransferPrice(index, "buy", price)}
+                        />
+                      </span>
+                    )}
                   </span>
-                  {price !== undefined && !problem && (
-                    <span className="shrink-0 text-xs text-muted tabular-nums">{formatPrice(price)}</span>
-                  )}
                   <button
                     type="button"
                     aria-label={`Remove: ${label}`}

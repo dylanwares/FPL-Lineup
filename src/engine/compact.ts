@@ -20,6 +20,15 @@ export function compactGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
 
   if (end.chip) steps.push({ type: "chip", gw, chip: end.chip });
 
+  // Hand-typed prices belong to the player, so they follow them into the re-paired transfers.
+  const sellAt = new Map<number, number>();
+  const buyAt = new Map<number, number>();
+  for (const m of moves) {
+    if (m.type !== "transfer") continue;
+    if (m.sellPrice !== undefined) sellAt.set(m.out, m.sellPrice);
+    if (m.buyPrice !== undefined) buyAt.set(m.in, m.buyPrice);
+  }
+
   // Transfers: pair each player sold with one bought in the same position.
   // Sold in starting-slot order, bought in final-slot order, so the incoming
   // player usually lands straight in the slot they finish in.
@@ -31,7 +40,18 @@ export function compactGw(gw: number, start: Carry, moves: Move[], ctx: EngineCo
       .filter((id) => ctx.position(id) === pos)
       .sort((a, b) => end.slots.indexOf(a) - end.slots.indexOf(b));
     if (sold.length !== bought.length) return null;
-    sold.forEach((out, i) => steps.push({ type: "transfer", gw, out, in: bought[i] }));
+    sold.forEach((out, i) => {
+      const sellPrice = sellAt.get(out);
+      const buyPrice = buyAt.get(bought[i]);
+      steps.push({
+        type: "transfer",
+        gw,
+        out,
+        in: bought[i],
+        ...(sellPrice !== undefined && { sellPrice }),
+        ...(buyPrice !== undefined && { buyPrice }),
+      });
+    });
   }
 
   // Subs: first make the starting XI the right set of players, then fix the bench order.
