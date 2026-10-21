@@ -38,6 +38,11 @@ export const viewport: Viewport = {
   themeColor: "#07040d",
   // Edge to edge, so the tab bar can float over the home indicator's safe area.
   viewportFit: "cover",
+  // App-like: no pinch zoom, and no iOS zoom-in when focusing a small input.
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
