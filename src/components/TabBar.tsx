@@ -56,6 +56,17 @@ const TABS: { tab: Tab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    tab: "scout",
+    label: "Scout",
+    icon: (
+      // A magnifying glass.
+      <svg viewBox="0 0 24 24" className="size-[22px]" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="m15.25 15.25 5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 /**

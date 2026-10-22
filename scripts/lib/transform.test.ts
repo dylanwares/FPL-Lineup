@@ -37,6 +37,7 @@ function source(overrides: Partial<SourceData> = {}): SourceData {
         selectedBy: 74.9,
         totalPoints: 60,
         epNext: 6.5,
+        stats: { minutes: 540, goals: 8, xg: 6.234, ict: 45.6, penOrder: 1, fkOrder: null },
       },
       {
         id: 10,
@@ -117,6 +118,17 @@ describe("buildBootstrap", () => {
     expect(raya).toMatchObject({ pos: "GKP", price: 61, status: "d", chance: 75, form: 6, selectedBy: 30.2 });
     const haaland = data.playerById.get(20)!;
     expect(haaland).toMatchObject({ pos: "FWD", chance: null, form: 7.3 });
+    // Stats are scaled on the wire; missing and null ones come back as 0.
+    expect(haaland.stats).toMatchObject({
+      minutes: 540,
+      goals: 8,
+      xg: 6.23,
+      ict: 45.6,
+      penOrder: 1,
+      fkOrder: 0,
+      saves: 0,
+    });
+    expect(raya.stats.minutes).toBe(0);
 
     expect(data.teamById.get(2)!.kit).toEqual({
       style: KITS[43].style,

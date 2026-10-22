@@ -1,6 +1,6 @@
 import type { Kit } from "../../src/config/kits";
 import type { SeasonRules } from "../../src/config/rules";
-import { BOOTSTRAP_FORMAT, type BootstrapFile } from "../../src/data/format";
+import { BOOTSTRAP_FORMAT, STAT_KEYS, STAT_SCALES, type BootstrapFile } from "../../src/data/format";
 import type { Projections, SourceData } from "./sources";
 
 export interface BuildResult {
@@ -90,6 +90,12 @@ export function buildBootstrap(
       form: players.map((p) => Math.round(p.form * 10)),
       sel: players.map((p) => Math.round(p.selectedBy * 10)),
       pts: players.map((p) => p.totalPoints),
+      stats: Object.fromEntries(
+        STAT_KEYS.map((key) => [
+          key,
+          players.map((p) => Math.round((p.stats?.[key] ?? 0) * STAT_SCALES[key])),
+        ]),
+      ) as BootstrapFile["players"]["stats"],
     },
     fixtures: {
       id: fixtures.map((f) => f.id),

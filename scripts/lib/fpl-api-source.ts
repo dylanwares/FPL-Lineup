@@ -27,6 +27,41 @@ interface FplBootstrap {
     selected_by_percent: string;
     total_points: number;
     ep_next: string | null;
+    minutes: number;
+    starts: number;
+    goals_scored: number;
+    assists: number;
+    clean_sheets: number;
+    goals_conceded: number;
+    own_goals: number;
+    penalties_saved: number;
+    penalties_missed: number;
+    yellow_cards: number;
+    red_cards: number;
+    saves: number;
+    bonus: number;
+    bps: number;
+    defensive_contribution: number;
+    clearances_blocks_interceptions: number;
+    recoveries: number;
+    tackles: number;
+    dreamteam_count: number;
+    expected_goals: string;
+    expected_assists: string;
+    expected_goal_involvements: string;
+    expected_goals_conceded: string;
+    points_per_game: string;
+    ict_index: string;
+    influence: string;
+    creativity: string;
+    threat: string;
+    transfers_in_event: number;
+    transfers_out_event: number;
+    cost_change_event: number;
+    cost_change_start: number;
+    penalties_order: number | null;
+    corners_and_indirect_freekicks_order: number | null;
+    direct_freekicks_order: number | null;
   }[];
   chips: { name: string; start_event: number; stop_event: number }[];
 }
@@ -75,6 +110,43 @@ export function normaliseFpl(bs: FplBootstrap, fixtures: FplFixture[]): SourceDa
       selectedBy: num(e.selected_by_percent),
       totalPoints: e.total_points,
       epNext: e.ep_next == null ? null : num(e.ep_next),
+      stats: {
+        minutes: e.minutes,
+        starts: e.starts,
+        goals: e.goals_scored,
+        assists: e.assists,
+        cleanSheets: e.clean_sheets,
+        goalsConceded: e.goals_conceded,
+        ownGoals: e.own_goals,
+        penaltiesSaved: e.penalties_saved,
+        penaltiesMissed: e.penalties_missed,
+        yellowCards: e.yellow_cards,
+        redCards: e.red_cards,
+        saves: e.saves,
+        bonus: e.bonus,
+        bps: e.bps,
+        defCon: e.defensive_contribution,
+        cbi: e.clearances_blocks_interceptions,
+        recoveries: e.recoveries,
+        tackles: e.tackles,
+        dreamteam: e.dreamteam_count,
+        xg: num(e.expected_goals),
+        xa: num(e.expected_assists),
+        xgi: num(e.expected_goal_involvements),
+        xgc: num(e.expected_goals_conceded),
+        ppg: num(e.points_per_game),
+        ict: num(e.ict_index),
+        influence: num(e.influence),
+        creativity: num(e.creativity),
+        threat: num(e.threat),
+        transfersIn: e.transfers_in_event,
+        transfersOut: e.transfers_out_event,
+        priceChangeGw: e.cost_change_event,
+        priceChangeStart: e.cost_change_start,
+        penOrder: e.penalties_order,
+        cornerOrder: e.corners_and_indirect_freekicks_order,
+        fkOrder: e.direct_freekicks_order,
+      },
     })),
     fixtures: fixtures.map((f) => ({
       id: f.id,

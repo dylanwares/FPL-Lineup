@@ -1,5 +1,6 @@
 import type { Kit } from "@/config/kits";
 import type { Position } from "@/config/rules";
+import type { StatKey } from "./format";
 
 export type PlayerStatus = "a" | "d" | "i" | "s" | "u" | "n";
 
@@ -10,6 +11,9 @@ export interface Team {
   short: string;
   kit: Kit;
 }
+
+/** Season totals, unscaled (xG 1.23, ICT 45.6). */
+export type PlayerStats = Record<StatKey, number>;
 
 export interface Player {
   id: number;
@@ -26,6 +30,7 @@ export interface Player {
   form: number;
   selectedBy: number;
   totalPoints: number;
+  stats: PlayerStats;
   /** Row in the expected-points table. */
   index: number;
 }

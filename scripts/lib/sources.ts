@@ -1,4 +1,5 @@
 import type { ChipName } from "../../src/config/rules";
+import type { StatKey } from "../../src/data/format";
 
 /**
  * Normalised game data every source produces. The FPL API source is used for
@@ -23,6 +24,8 @@ export interface SourceData {
     totalPoints: number;
     /** FPL's own next-gameweek estimate, the fallback when projections are missing. */
     epNext: number | null;
+    /** Season stats, unscaled; missing ones are stored as 0. */
+    stats?: Partial<Record<StatKey, number | null>>;
   }[];
   fixtures: {
     id: number;

@@ -1,7 +1,7 @@
 /*
- * FPL Lineup service worker: opens the planner and fixtures offline.
+ * FPL Lineup service worker: opens the planner, fixtures and scout offline.
  *
- * - Pages (/ and /fixtures): network first, so a new release is picked up on
+ * - Pages (/, /fixtures, /scout): network first, so a new release is picked up on
  *   the next launch; the cached copy answers when offline or after 3 s.
  * - /_next/static and /icons: content-hashed, so cache first. Precached from
  *   the pages' HTML on install; chunks loaded before this worker took control
@@ -15,7 +15,7 @@ const VERSION = "v1";
 const SHELL = `shell-${VERSION}`;
 const STATIC = "static"; // hashed URLs never change, so this survives new versions
 const RUNTIME = `runtime-${VERSION}`;
-const PAGES = ["/", "/fixtures"];
+const PAGES = ["/", "/fixtures", "/scout"];
 const STATIC_LIMIT = 400;
 const PAGE_TIMEOUT_MS = 3000;
 

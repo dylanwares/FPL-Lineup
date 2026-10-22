@@ -23,6 +23,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "Planner", url: "/", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Fixtures", url: "/fixtures", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Scout", url: "/scout", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }

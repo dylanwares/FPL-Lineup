@@ -1,6 +1,6 @@
 import type { Position } from "@/config/rules";
-import { BOOTSTRAP_FORMAT, type BootstrapFile } from "./format";
-import type { Fixture, GameData, GameEvent, Player, PlayerStatus, Team } from "./model";
+import { BOOTSTRAP_FORMAT, STAT_KEYS, STAT_SCALES, type BootstrapFile } from "./format";
+import type { Fixture, GameData, GameEvent, Player, PlayerStats, PlayerStatus, Team } from "./model";
 
 const POSITIONS: Position[] = ["GKP", "DEF", "MID", "FWD"];
 
@@ -42,6 +42,7 @@ export function decodeBootstrap(file: BootstrapFile): GameData {
     form: p.form[i] / 10,
     selectedBy: p.sel[i] / 10,
     totalPoints: p.pts[i],
+    stats: decodeStats(p.stats, i),
     index: i,
   }));
   const playerById = new Map(players.map((player) => [player.id, player]));
@@ -95,4 +96,10 @@ export function decodeBootstrap(file: BootstrapFile): GameData {
     xpGws: file.xp.gws,
     xp: Int16Array.from(file.xp.values),
   };
+}
+
+function decodeStats(columns: BootstrapFile["players"]["stats"], i: number): PlayerStats {
+  const stats = {} as PlayerStats;
+  for (const key of STAT_KEYS) stats[key] = (columns?.[key]?.[i] ?? 0) / STAT_SCALES[key];
+  return stats;
 }

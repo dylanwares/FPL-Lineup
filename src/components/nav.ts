@@ -3,21 +3,34 @@
 import { usePathname } from "next/navigation";
 
 /*
- * The app's two screens behave like native tabs: both stay mounted and a tab
+ * The app's screens behave like native tabs: all stay mounted and a tab
  * switch only swaps which one shows. The URL still changes (via pushState,
  * which Next's router follows), so /fixtures links, reloads and Back work.
  */
 
-export type Tab = "planner" | "fixtures";
+export type Tab = "planner" | "fixtures" | "scout";
 
-export const TAB_PATHS: Record<Tab, string> = { planner: "/", fixtures: "/fixtures" };
+export const TAB_PATHS: Record<Tab, string> = { planner: "/", fixtures: "/fixtures", scout: "/scout" };
 
 export const TAB_TITLES: Record<Tab, string> = {
   planner: "FPL Lineup — Fantasy Premier League planner",
   fixtures: "Fixtures · FPL Lineup",
+  scout: "Scout · FPL Lineup",
 };
 
-const tabOf = (pathname: string): Tab => (pathname === TAB_PATHS.fixtures ? "fixtures" : "planner");
+const tabOf = (pathname: string): Tab =>
+  pathname === TAB_PATHS.fixtures ? "fixtures" : pathname === TAB_PATHS.scout ? "scout" : "planner";
+
+/** A tab's own query string (Scout's filters), put back in the URL when the tab returns. */
+const tabSearch: Partial<Record<Tab, string>> = {};
+
+/** Records a tab's query string, and shows it in the URL if that tab is on screen. */
+export function setTabSearch(tab: Tab, search: string) {
+  tabSearch[tab] = search;
+  if (currentTab() === tab && location.search !== search) {
+    history.replaceState(history.state, "", TAB_PATHS[tab] + search);
+  }
+}
 
 export function useTab(): Tab {
   return tabOf(usePathname());
@@ -34,7 +47,7 @@ export function goTo(tab: Tab) {
     window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
-  history.pushState(null, "", TAB_PATHS[tab]);
+  history.pushState(null, "", TAB_PATHS[tab] + (tabSearch[tab] ?? ""));
 }
 
 /** Lets modified clicks (new tab, new window) through to the link's href. */

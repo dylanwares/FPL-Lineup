@@ -46,7 +46,7 @@ export function searchKey(data: GameData, player: Player): string {
   return key;
 }
 
-function fold(s: string): string {
+export function fold(s: string): string {
   return s
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
