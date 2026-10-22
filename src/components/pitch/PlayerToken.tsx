@@ -37,6 +37,8 @@ export interface PlayerTokenProps {
   targeted?: boolean;
   /** An empty slot left by a removed player: a dashed outline in place of the kit. */
   empty?: boolean;
+  /** Blurred out, to be revealed later (content creation). Un-blurs with a slow fade. */
+  hidden?: boolean;
   /** FPL player id, exposed as data-id for drag hit-testing. */
   playerId?: number;
   onClick?: () => void;
@@ -58,6 +60,7 @@ export function PlayerToken({
   lifted,
   targeted,
   empty,
+  hidden,
   playerId,
   onClick,
 }: PlayerTokenProps) {
@@ -70,50 +73,60 @@ export function PlayerToken({
       data-id={playerId}
       data-selected={selected || undefined}
       data-dimmed={dimmed || undefined}
+      data-hidden={hidden || undefined}
+      aria-label={hidden ? "Hidden player" : undefined}
       aria-pressed={onClick && selected !== undefined ? selected : undefined}
       onContextMenu={onClick ? (e: React.MouseEvent) => e.preventDefault() : undefined}
       className={`relative flex w-[68px] flex-col items-center transition duration-150 select-none [-webkit-touch-callout:none] sm:w-[76px] ${
         selected ? "-translate-y-1.5" : ""
       } ${targeted ? "scale-110" : ""} ${lifted ? "opacity-25" : dimmed || blank ? "opacity-40" : ""} ${blank ? "grayscale" : ""}`}
     >
-      <div className="relative">
-        {/* contact shadow */}
-        <span className="absolute bottom-0 left-1/2 h-2.5 w-11 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(0_0_0/0.65),transparent)]" />
-        {empty ? (
-          <span
-            className={`relative grid size-10 place-items-center rounded-full border-2 border-dashed border-white/50 bg-black/20 text-white/80 sm:size-12 ${glow}`}
-          >
-            <Plus className="size-5" />
-          </span>
-        ) : photo ? (
-          // Keyed by URL so a failed photo's fallback doesn't stick to the next player in this slot.
-          <PlayerPhoto key={photo} src={photo} kit={kit} goalkeeper={goalkeeper} className={glow} />
-        ) : (
-          <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-10 sm:size-12 ${glow}`} />
-        )}
-        {captain && <CaptainBadge role={captain} className="absolute top-0 -left-2.5" />}
-        {flag && <FlagIcon flag={flag} className="absolute top-0.5 -right-2.5" />}
-      </div>
+      {/* Its own layer so the reveal can fade slower than the tap feedback above. */}
       <span
-        className={`relative -mt-0.5 w-full truncate rounded-t-md px-1 text-center text-[11px] leading-[18px] font-semibold ${
-          flag ? "bg-doubt text-[#1a1200]" : "bg-[rgb(8_5_16/0.82)] text-white"
-        } ${targeted ? "ring-2 ring-cyan" : selected ? "ring-2 ring-mint" : "ring-1 ring-white/10"}`}
+        aria-hidden={hidden || undefined}
+        className={`flex w-full flex-col items-center transition-[filter] duration-500 ease-out ${
+          hidden ? "blur-[7px]" : ""
+        }`}
       >
-        {name}
-      </span>
-      {upcoming && <UpcomingStrip fixtures={upcoming} />}
-      <span className="flex w-full overflow-hidden rounded-b-md">
-        {metrics.length === 0 ? (
-          <FdrPill difficulty={null} className="w-full rounded-none">
-            —
-          </FdrPill>
-        ) : (
-          metrics.map((m, i) => (
-            <FdrPill key={i} difficulty={m.difficulty} className="min-w-0 flex-1 truncate rounded-none">
-              {m.label}
+        <div className="relative">
+          {/* contact shadow */}
+          <span className="absolute bottom-0 left-1/2 h-2.5 w-11 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(0_0_0/0.65),transparent)]" />
+          {empty ? (
+            <span
+              className={`relative grid size-10 place-items-center rounded-full border-2 border-dashed border-white/50 bg-black/20 text-white/80 sm:size-12 ${glow}`}
+            >
+              <Plus className="size-5" />
+            </span>
+          ) : photo ? (
+            // Keyed by URL so a failed photo's fallback doesn't stick to the next player in this slot.
+            <PlayerPhoto key={photo} src={photo} kit={kit} goalkeeper={goalkeeper} className={glow} />
+          ) : (
+            <Kit kit={kit} goalkeeper={goalkeeper} className={`relative size-10 sm:size-12 ${glow}`} />
+          )}
+          {captain && <CaptainBadge role={captain} className="absolute top-0 -left-2.5" />}
+          {flag && <FlagIcon flag={flag} className="absolute top-0.5 -right-2.5" />}
+        </div>
+        <span
+          className={`relative -mt-0.5 w-full truncate rounded-t-md px-1 text-center text-[11px] leading-[18px] font-semibold ${
+            flag ? "bg-doubt text-[#1a1200]" : "bg-[rgb(8_5_16/0.82)] text-white"
+          } ${targeted ? "ring-2 ring-cyan" : selected ? "ring-2 ring-mint" : "ring-1 ring-white/10"}`}
+        >
+          {name}
+        </span>
+        {upcoming && <UpcomingStrip fixtures={upcoming} />}
+        <span className="flex w-full overflow-hidden rounded-b-md">
+          {metrics.length === 0 ? (
+            <FdrPill difficulty={null} className="w-full rounded-none">
+              —
             </FdrPill>
-          ))
-        )}
+          ) : (
+            metrics.map((m, i) => (
+              <FdrPill key={i} difficulty={m.difficulty} className="min-w-0 flex-1 truncate rounded-none">
+                {m.label}
+              </FdrPill>
+            ))
+          )}
+        </span>
       </span>
     </Tag>
   );

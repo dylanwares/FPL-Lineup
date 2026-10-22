@@ -59,6 +59,12 @@ export const Help = (p: P) => (
 export const Star = (p: P & { filled?: boolean }) => (
   <Icon d="m12 3.5 2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9Z" {...p} />
 );
+export const EyeOff = (p: P) => (
+  <Icon
+    d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7a13 13 0 0 1-2.6 3.6M6.6 6.6C4.3 8 2.7 10.2 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5M9.9 9.9a3 3 0 0 0 4.2 4.2"
+    {...p}
+  />
+);
 export const Close = (p: P) => <Icon d="M6 6l12 12M18 6 6 18" {...p} />;
 export const Camera = (p: P) => (
   <Icon d="M4 8h3l2-3h6l2 3h3v11H4ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...p} />

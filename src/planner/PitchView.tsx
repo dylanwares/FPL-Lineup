@@ -104,6 +104,7 @@ const PitchPlayer = memo(function PitchPlayer({
   const metric = usePlanner((s) => s.metric);
   const photos = usePlanner((s) => s.photos);
   const scored = usePlanner((s) => scoredIn(s.past[gw], id, !!s.team && gw < s.team.planFromGw));
+  const hidden = usePlanner((s) => s.hidden.includes(id));
   const props = useMemo(
     () => tokenProps(data, id, gw, role, metric, photos, scored, purchase),
     [data, id, gw, role, metric, photos, scored, purchase],
@@ -112,6 +113,7 @@ const PitchPlayer = memo(function PitchPlayer({
   return (
     <PlayerToken
       {...props}
+      hidden={hidden}
       playerId={id}
       selected={selected}
       dimmed={dimmed}
@@ -165,6 +167,7 @@ function DragGhost({
   const metric = usePlanner((s) => s.metric);
   const photos = usePlanner((s) => s.photos);
   const scored = usePlanner((s) => scoredIn(s.past[gw], id, !!s.team && gw < s.team.planFromGw));
+  const hidden = usePlanner((s) => s.hidden.includes(id));
   const props = useMemo(
     () => tokenProps(data, id, gw, role, metric, photos, scored, purchase),
     [data, id, gw, role, metric, photos, scored, purchase],
@@ -175,7 +178,7 @@ function DragGhost({
       className="pointer-events-none fixed top-0 left-0 z-50 drop-shadow-[0_10px_18px_rgb(0_0_0/0.5)]"
       ref={attachGhost}
     >
-      <PlayerToken {...props} selected />
+      <PlayerToken {...props} hidden={hidden} selected />
     </div>
   );
 }

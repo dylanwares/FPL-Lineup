@@ -155,6 +155,7 @@ function useScene(): SceneInput | null {
   const metric = usePlanner((s) => s.metric);
   const photos = usePlanner((s) => s.photos);
   const past = usePlanner((s) => s.past[gw]);
+  const hidden = usePlanner((s) => s.hidden);
   // The view object is new each render; the squad inside it only changes with the plan.
   const squad =
     view.kind === "plan"
@@ -180,7 +181,11 @@ function useScene(): SceneInput | null {
         scoredIn(past, id, isPast),
         "purchase" in squad ? squad.purchase[id] : undefined,
       );
-      return { ...props, photoCode: photo ? data.playerById.get(id)?.code : undefined };
+      return {
+        ...props,
+        photoCode: photo ? data.playerById.get(id)?.code : undefined,
+        hidden: hidden.includes(id),
+      };
     };
     return {
       teamName: team.teamName,
@@ -189,5 +194,5 @@ function useScene(): SceneInput | null {
       rows: formationRows(slots, engineContext(data).position).map((row) => row.map((id) => token(id, true))),
       bench: slots.slice(STARTERS).map((id) => token(id, false)),
     };
-  }, [squad, data, team, gw, metric, photos, past]);
+  }, [squad, data, team, gw, metric, photos, past, hidden]);
 }

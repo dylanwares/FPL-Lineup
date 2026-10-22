@@ -25,6 +25,8 @@ export interface ShareToken {
   empty?: boolean;
   /** Photo view: the loaded photo (the kit is drawn when it's missing). */
   photo?: HTMLImageElement | null;
+  /** Blurred out, as on the pitch. */
+  hidden?: boolean;
 }
 
 export interface ShareScene {
@@ -292,6 +294,11 @@ function drawBench(
   });
 }
 
+/** Room round a token for what pokes out of it (armband, flag, a tall photo) and the blur's spread. */
+const BLUR_PAD = 40;
+/** How many times a hidden token is halved before it's scaled back up: 4 → drawn at 1/16 size. */
+const BLUR_STEPS = 4;
+
 function drawToken(
   ctx: CanvasRenderingContext2D,
   t: ShareToken,
@@ -300,6 +307,7 @@ function drawToken(
   style: ShareStyle,
   font: FontFn,
 ) {
+  if (t.hidden) return drawHiddenToken(ctx, t, x, y, style, font);
   const cx = x + TOKEN_W / 2;
   const kitX = cx - KIT / 2;
   ctx.save();
@@ -409,6 +417,51 @@ function drawToken(
     ctx.fillText(fit(ctx, m.label, segW - 10), x + i * segW + segW / 2, pillY + PILL_H / 2 + 1);
   });
   ctx.restore();
+  ctx.restore();
+}
+
+/**
+ * A hidden player: the token drawn on its own canvas, then shrunk and scaled
+ * back up in halving steps, which smears it like a blur. Done by hand rather
+ * than with ctx.filter, which some browsers ignore (that would leave the name
+ * readable).
+ */
+function drawHiddenToken(
+  ctx: CanvasRenderingContext2D,
+  t: ShareToken,
+  x: number,
+  y: number,
+  style: ShareStyle,
+  font: FontFn,
+) {
+  const w = TOKEN_W + 2 * BLUR_PAD;
+  const h = TOKEN_H + 2 * BLUR_PAD;
+  const layer = (lw: number, lh: number) => {
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(lw));
+    c.height = Math.max(1, Math.round(lh));
+    const c2 = c.getContext("2d")!;
+    c2.imageSmoothingQuality = "high";
+    return [c, c2] as const;
+  };
+
+  const [full, fullCtx] = layer(w, h);
+  drawToken(fullCtx, { ...t, hidden: false }, BLUR_PAD, BLUR_PAD, style, font);
+
+  let src: HTMLCanvasElement = full;
+  for (let i = 1; i <= BLUR_STEPS; i++) {
+    const [c, c2] = layer(w / 2 ** i, h / 2 ** i);
+    c2.drawImage(src, 0, 0, c.width, c.height);
+    src = c;
+  }
+  for (let i = BLUR_STEPS - 1; i >= 1; i--) {
+    const [c, c2] = layer(w / 2 ** i, h / 2 ** i);
+    c2.drawImage(src, 0, 0, c.width, c.height);
+    src = c;
+  }
+  ctx.save();
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, x - BLUR_PAD, y - BLUR_PAD, w, h);
   ctx.restore();
 }
 

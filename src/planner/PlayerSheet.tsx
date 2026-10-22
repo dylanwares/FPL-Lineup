@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Kit } from "@/components/Kit";
 import { FlagIcon } from "@/components/ui/Badges";
-import { Close, Swap, Transfer } from "@/components/ui/Icons";
+import { Close, EyeOff, Swap, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { sellingPrice } from "@/engine/money";
 import { canSwap, isStarter } from "@/engine/squad";
@@ -11,7 +11,7 @@ import { FixtureXpList } from "./FixtureXpList";
 import { useGwView } from "./hooks";
 import { playerList } from "./lazy-parts";
 import { engineContext, formatPrice, playerFlag } from "./model";
-import { closeSheet, removePlayer, setCaptain, setVice, startMoveFor, usePlanner } from "./store";
+import { closeSheet, hidePlayer, removePlayer, setCaptain, setVice, startMoveFor, usePlanner } from "./store";
 
 /** The Sub / Transfer / Remove row: slightly smaller text and padding so a bigger icon fits three across. */
 const ACTION = "justify-center gap-1.5! px-2! text-[13px]!";
@@ -77,9 +77,14 @@ function Sheet({ id }: { id: number }) {
               {team.name} · {POSITION_NAMES[player.pos]}
             </p>
           </div>
-          <PillButton size="icon" aria-label="Close" onClick={closeSheet}>
-            <Close className="size-4" />
-          </PillButton>
+          <div className="flex shrink-0 gap-2">
+            <PillButton size="icon" aria-label="Hide player" onClick={() => hidePlayer(id)}>
+              <EyeOff className="size-4" />
+            </PillButton>
+            <PillButton size="icon" aria-label="Close" onClick={closeSheet}>
+              <Close className="size-4" />
+            </PillButton>
+          </div>
         </div>
 
         {player.news && (

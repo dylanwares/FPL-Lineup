@@ -57,6 +57,8 @@ export interface PlannerState {
   past: Record<number, PastState>;
   /** Sub or Transfer mode; stays on after each move. */
   mode: Mode;
+  /** Players blurred out for a reveal (content creation). Kept for this visit, across gameweeks. */
+  hidden: number[];
   /** Sub mode: the player picked first. Transfer mode: the player being sold (opens the player list). */
   selected: number | null;
   /** The mode was started from a player's sheet for one move: it switches off after that move (or a cancel). */
@@ -86,6 +88,7 @@ export const usePlanner = create<PlannerState>(() => ({
   refreshing: false,
   past: {},
   mode: "none",
+  hidden: [],
   selected: null,
   oneShot: false,
   dragFrom: null,
@@ -289,6 +292,7 @@ export function disconnect() {
     sheetPlayer: null,
     importError: null,
     mode: "none",
+    hidden: [],
     selected: null,
     oneShot: false,
   });
@@ -441,13 +445,21 @@ function playerName(id: number) {
   return get().data?.playerById.get(id)?.name ?? "player";
 }
 
+/** Blurs a player out (from their sheet), to be revealed by a tap on the pitch. */
+export function hidePlayer(id: number) {
+  const { hidden } = get();
+  set({ hidden: hidden.includes(id) ? hidden : [...hidden, id], sheetPlayer: null });
+}
+
 /**
- * A tap on a pitch or bench player. Outside the modes it opens the player
- * sheet; in Sub mode the first tap selects and the second swaps (or cancels);
- * in Transfer mode it picks the player to sell, which opens the player list.
+ * A tap on a pitch or bench player. A hidden player is revealed. Otherwise,
+ * outside the modes it opens the player sheet; in Sub mode the first tap
+ * selects and the second swaps (or cancels); in Transfer mode it picks the
+ * player to sell, which opens the player list.
  */
 export function tapPlayer(id: number) {
-  const { mode, selected, data, team, gw } = get();
+  const { mode, selected, data, team, gw, hidden } = get();
+  if (hidden.includes(id)) return set({ hidden: hidden.filter((h) => h !== id) });
   const readOnly = !team || gw < team.planFromGw;
   if (readOnly && isEmptySlot(id)) return;
   // An empty slot has no sheet: tapping it goes straight to picking someone to fill it.

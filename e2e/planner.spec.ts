@@ -72,6 +72,20 @@ test("sub mode: two taps swap a starter and a sub, and the armband follows", asy
   await expect(token(page, n[8])).not.toHaveAttribute("data-selected");
 });
 
+test("the player sheet hides a player, and a tap reveals them", async ({ page, planner }) => {
+  void planner;
+  const n = await names(page);
+  await token(page, n[12]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Hide player" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(token(page, n[12])).toHaveAttribute("data-hidden", "true");
+
+  // A tap on a hidden player reveals them rather than opening their sheet.
+  await token(page, n[12]).click();
+  await expect(token(page, n[12])).not.toHaveAttribute("data-hidden");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 test("transfer mode: sell, buy, undo and reset", async ({ page, planner }) => {
   const n = await names(page);
   const transfer = page.getByRole("button", { name: "Transfer", exact: true });
