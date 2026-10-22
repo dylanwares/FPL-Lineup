@@ -1,11 +1,11 @@
 "use client";
 
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Kit } from "@/components/Kit";
 import { setTabSearch, TAB_PATHS } from "@/components/nav";
 import { GlassPanel } from "@/components/ui/GlassPanel";
-import { ChevronDown } from "@/components/ui/Icons";
+import { ChevronDown, Star } from "@/components/ui/Icons";
 import { fixturesFor, type GameData, type Player } from "@/data/model";
 import { stateAt } from "@/engine/plan";
 import { isEmptySlot } from "@/engine/types";
@@ -21,6 +21,8 @@ import {
   type ScoutFilters,
   type ScoutRow,
 } from "./filter";
+import { matchingReport, REPORTS } from "./reports";
+import { ScoutSheet } from "./ScoutSheet";
 import {
   COLUMN_SET_IDS,
   COLUMN_SETS,
@@ -32,6 +34,7 @@ import {
   type ScoutContext,
   type StatId,
 } from "./stats";
+import { useWatchlist } from "./watchlist";
 
 const ROW_HEIGHT = 52;
 const PRICE_STEPS = Array.from({ length: 24 }, (_, i) => 35 + i * 5); // £3.5m … £15.0m
@@ -80,9 +83,18 @@ function Scout({ data, active }: { data: GameData; active: boolean }) {
     return new Set(slots.filter((id) => !isEmptySlot(id)));
   }, [plan, data, ctx.gw]);
 
+  const watchIds = useWatchlist((s) => s.ids);
+  const watchlist = useMemo(() => new Set(watchIds), [watchIds]);
+
   const rows = useMemo(
-    () => scoutRows(ctx, { ...filters, query, hideOwned: filters.hideOwned && !!owned }, owned ?? undefined),
-    [ctx, filters, query, owned],
+    () =>
+      scoutRows(
+        ctx,
+        { ...filters, query, hideOwned: filters.hideOwned && !!owned },
+        owned ?? undefined,
+        watchlist,
+      ),
+    [ctx, filters, query, owned, watchlist],
   );
 
   const stats = visibleStats(filters.cols, filters.sort);
@@ -90,6 +102,9 @@ function Scout({ data, active }: { data: GameData; active: boolean }) {
   const sortBy = (id: StatId) =>
     update(id === filters.sort ? { reverse: !filters.reverse } : { sort: id, reverse: false });
   const filterCount = activeFilterCount(filters);
+  const report = matchingReport(filters);
+  const [sheet, setSheet] = useState<number | null>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
 
   return (
     <>
@@ -102,6 +117,45 @@ function Scout({ data, active }: { data: GameData; active: boolean }) {
           onChange={(e) => update({ query: e.target.value })}
           className="h-11 rounded-xl border border-[var(--line)] bg-[var(--glass-solid)] px-3.5 text-sm outline-none placeholder:text-faint focus:border-mint"
         />
+
+        <div
+          role="group"
+          aria-label="Reports"
+          className="-mx-4 flex [scrollbar-width:none] items-center gap-1.5 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden"
+        >
+          <button
+            type="button"
+            aria-pressed={filters.watchlist}
+            onClick={() => update({ watchlist: !filters.watchlist })}
+            className={`${filters.watchlist ? "accent-soft" : "glass-pill text-fg"} flex h-8 shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12.5px] font-semibold`}
+          >
+            <Star filled={filters.watchlist} className="size-3.5" />
+            Watchlist
+            {watchIds.length > 0 && <span className="text-muted tabular-nums">{watchIds.length}</span>}
+          </button>
+          <span className="shrink-0 pr-0.5 pl-1.5 text-[10px] font-semibold tracking-[0.2em] text-muted uppercase">
+            Reports
+          </span>
+          {REPORTS.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              aria-pressed={report?.id === r.id}
+              title={r.blurb}
+              // A report runs over the watchlist too, if that's on.
+              onClick={() =>
+                setFilters({
+                  ...(report?.id === r.id ? DEFAULT_FILTERS : r.filters),
+                  watchlist: filters.watchlist,
+                })
+              }
+              className={`${report?.id === r.id ? "accent-soft" : "glass-pill text-fg"} h-8 shrink-0 rounded-xl px-3 text-[12.5px] font-semibold`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        {report && <p className="-mt-1 px-1 text-[11px] text-muted">{report.blurb}</p>}
 
         <div className="flex items-center gap-2">
           <div role="group" aria-label="Positions" className="glass-pill flex h-9 flex-1 rounded-xl p-0.5">
@@ -148,6 +202,7 @@ function Scout({ data, active }: { data: GameData; active: boolean }) {
                 ...DEFAULT_FILTERS,
                 query: filters.query,
                 pos: filters.pos,
+                watchlist: filters.watchlist,
                 sort: filters.sort,
                 reverse: filters.reverse,
                 cols: filters.cols,
@@ -218,8 +273,10 @@ function Scout({ data, active }: { data: GameData; active: boolean }) {
         fixtures={fixtures}
         filters={filters}
         sortBy={sortBy}
+        onOpen={setSheet}
         active={active}
       />
+      {active && sheet !== null && <ScoutSheet ctx={ctx} id={sheet} onClose={closeSheet} />}
     </>
   );
 }
@@ -425,6 +482,7 @@ function Table({
   fixtures,
   filters,
   sortBy,
+  onOpen,
   active,
 }: {
   ctx: ScoutContext;
@@ -433,10 +491,12 @@ function Table({
   fixtures: boolean;
   filters: ScoutFilters;
   sortBy: (id: StatId) => void;
+  onOpen: (id: number) => void;
   active: boolean;
 }) {
   const list = useRef<HTMLDivElement>(null);
   const [margin, setMargin] = useState(0);
+  const watchlist = useWatchlist((s) => s.ids);
 
   // The virtualiser needs the list's offset from the top of the page, which
   // moves when the filter panel opens (the page resizes, so watch the body).
@@ -519,12 +579,18 @@ function Table({
             stats={statCols}
             gws={fixtures ? gws : null}
             sort={filters.sort}
+            watched={watchlist.includes(rows[item.index].player.id)}
+            onOpen={onOpen}
             style={{ height: item.size, transform: `translateY(${item.start - margin}px)` }}
           />
         ))}
       </div>
       {rows.length === 0 && (
-        <p className="p-6 text-center text-sm text-muted">No players match these filters.</p>
+        <p className="p-6 text-center text-sm text-muted">
+          {filters.watchlist && watchlist.length === 0
+            ? "Your watchlist is empty. Open a player and tap the star to add them."
+            : "No players match these filters."}
+        </p>
       )}
     </div>
   );
@@ -539,6 +605,8 @@ function Row({
   stats,
   gws,
   sort,
+  watched,
+  onOpen,
   style,
 }: {
   row: ScoutRow;
@@ -547,18 +615,22 @@ function Row({
   stats: StatId[];
   gws: number[] | null;
   sort: StatId;
+  watched: boolean;
+  onOpen: (id: number) => void;
   style: React.CSSProperties;
 }) {
   const { player, owned } = row;
   const team = ctx.data.teamById.get(player.team)!;
   const flagged = player.status !== "a";
 
+  // The whole row opens the sheet; the name is a button so keyboards can reach it.
   return (
     <div
       role="row"
       data-player={player.name}
       style={style}
-      className={`absolute inset-x-0 top-0 grid ${grid} items-center gap-1 border-t border-[var(--line)] px-3`}
+      onClick={() => onOpen(player.id)}
+      className={`absolute inset-x-0 top-0 grid ${grid} cursor-pointer items-center gap-1 border-t border-[var(--line)] px-3 transition-colors hover:bg-[var(--line)]`}
     >
       <span role="rowheader" className="flex min-w-0 items-center gap-2">
         <Kit kit={team.kit} goalkeeper={player.pos === "GKP"} className="size-7 shrink-0" />
@@ -569,9 +641,18 @@ function Row({
                 <span className="sr-only">In your squad: </span>
               </span>
             )}
-            <span className={`truncate text-[13px] font-semibold ${flagged ? "text-doubt" : ""}`}>
+            <button
+              type="button"
+              className={`truncate text-left text-[13px] font-semibold outline-none focus-visible:underline ${flagged ? "text-doubt" : ""}`}
+            >
               {player.name}
-            </span>
+            </button>
+            {watched && (
+              <span title="On your watchlist" className="shrink-0 text-cyan">
+                <Star filled className="size-3" />
+                <span className="sr-only">(watchlist)</span>
+              </span>
+            )}
           </span>
           <span className="block truncate text-[11px] text-muted">
             {team.short} {POSITION_NAMES[player.pos]}{" "}

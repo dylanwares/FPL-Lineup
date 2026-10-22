@@ -511,18 +511,31 @@ export function cancelDrag() {
 
 /** Transfer mode: buys `incoming` for the selected player, keeping the slot. */
 export function buyPlayer(incoming: number) {
-  const { plan, selected } = get();
-  if (!plan || selected === null) return;
-  const before = plan;
-  applyMove({ type: "transfer", out: selected, in: incoming });
+  const { selected } = get();
+  if (selected === null) return;
+  transferPlayer(selected, incoming);
   clearSelection();
-  const message = isEmptySlot(selected)
+}
+
+/** Sells `out` (or fills that empty slot) for `incoming` in the gameweek on screen, with Undo. */
+export function transferPlayer(out: number, incoming: number) {
+  const { plan } = get();
+  if (!plan) return;
+  const before = plan;
+  applyMove({ type: "transfer", out, in: incoming });
+  const message = isEmptySlot(out)
     ? `Bought ${playerName(incoming)}`
-    : `Sold ${playerName(selected)}, bought ${playerName(incoming)}`;
+    : `Sold ${playerName(out)}, bought ${playerName(incoming)}`;
   showToast(message, {
     label: "Undo",
     run: () => restorePlan(before),
   });
+}
+
+/** The gameweek moves go into from outside the planner: the one on screen, or the first plannable one. */
+export function plannableGw(): number | null {
+  const { team, gw } = get();
+  return team ? Math.max(gw, team.planFromGw) : null;
 }
 
 /** Sells a player without a replacement, leaving an empty slot to fill later. With Undo. */

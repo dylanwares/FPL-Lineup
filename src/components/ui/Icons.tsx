@@ -1,10 +1,18 @@
-/** Stroke icons on a 24px grid; size and colour come from className/currentColor. */
-function Icon({ d, className = "size-4" }: { d: string; className?: string }) {
+/** Stroke icons on a 24px grid; size and colour come from className/currentColor. `filled` fills the shape too. */
+function Icon({
+  d,
+  className = "size-4",
+  filled = false,
+}: {
+  d: string;
+  className?: string;
+  filled?: boolean;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
       className={className}
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth="2.2"
       strokeLinecap="round"
@@ -47,6 +55,9 @@ export const Help = (p: P) => (
     d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8M12 17.2v.01"
     {...p}
   />
+);
+export const Star = (p: P & { filled?: boolean }) => (
+  <Icon d="m12 3.5 2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9Z" {...p} />
 );
 export const Close = (p: P) => <Icon d="M6 6l12 12M18 6 6 18" {...p} />;
 export const Camera = (p: P) => (

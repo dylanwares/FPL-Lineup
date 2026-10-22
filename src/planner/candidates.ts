@@ -13,6 +13,8 @@ export interface CandidateFilters {
   maxPrice: number | null;
   /** Only show players the user can afford. */
   affordable: boolean;
+  /** Only show players starred in Scout. */
+  watchlist: boolean;
   sort: SortKey;
 }
 
@@ -21,6 +23,7 @@ export const DEFAULT_FILTERS: CandidateFilters = {
   team: null,
   maxPrice: null,
   affordable: false,
+  watchlist: false,
   sort: "xp",
 };
 
@@ -89,6 +92,7 @@ export function candidatesFor(
   gw: number,
   filters: CandidateFilters,
   maxPerClub: number,
+  watchlist: ReadonlySet<number> = new Set(),
 ): Candidate[] {
   const outPlayer = data.playerById.get(Math.abs(out));
   if (!outPlayer) return [];
@@ -109,6 +113,7 @@ export function candidatesFor(
     if (filters.team !== null && p.team !== filters.team) continue;
     if (filters.maxPrice !== null && p.price > filters.maxPrice) continue;
     if (filters.affordable && p.price > budget) continue;
+    if (filters.watchlist && !watchlist.has(p.id)) continue;
     if (query && !searchKey(data, p).includes(query)) continue;
 
     const reasons: string[] = [];

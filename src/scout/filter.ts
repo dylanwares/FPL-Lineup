@@ -35,6 +35,8 @@ export interface ScoutFilters {
   fixtures: FixtureFilter | null;
   /** Hide players in the plan's squad. */
   hideOwned: boolean;
+  /** Only starred players. Kept apart from the panel's filters: it has its own chip and survives Reset. */
+  watchlist: boolean;
   sort: StatId;
   /** Opposite of the stat's natural order. */
   reverse: boolean;
@@ -53,6 +55,7 @@ export const DEFAULT_FILTERS: ScoutFilters = {
   setPiece: null,
   fixtures: null,
   hideOwned: false,
+  watchlist: false,
   sort: "xp5",
   reverse: false,
   cols: "overview",
@@ -94,6 +97,7 @@ export function scoutRows(
   ctx: ScoutContext,
   filters: ScoutFilters,
   owned: ReadonlySet<number> = new Set(),
+  watchlist: ReadonlySet<number> = new Set(),
 ): ScoutRow[] {
   const { data } = ctx;
   const query = fold(filters.query.trim());
@@ -102,6 +106,7 @@ export function scoutRows(
 
   const rows: (ScoutRow & { value: number | null })[] = [];
   for (const p of data.players) {
+    if (filters.watchlist && !watchlist.has(p.id)) continue;
     if (filters.pos.length && !filters.pos.includes(p.pos)) continue;
     if (filters.team !== null && p.team !== filters.team) continue;
     if (filters.minPrice !== null && p.price < filters.minPrice) continue;
@@ -164,6 +169,7 @@ export function filtersToSearch(data: GameData, f: ScoutFilters): string {
   if (f.setPiece) q.set("sp", f.setPiece);
   if (f.fixtures) q.set("fx", f.fixtures === "double" ? "dgw" : "noblank");
   if (f.hideOwned) q.set("mine", "hide");
+  if (f.watchlist) q.set("watch", "1");
   if (f.sort !== DEFAULT_FILTERS.sort) q.set("sort", f.sort);
   if (f.reverse) q.set("rev", "1");
   if (f.cols !== DEFAULT_FILTERS.cols) q.set("cols", f.cols);
@@ -195,6 +201,7 @@ export function filtersFromSearch(data: GameData, search: string): ScoutFilters 
     setPiece: sp === "pen" || sp === "any" ? sp : null,
     fixtures: fx === "dgw" ? "double" : fx === "noblank" ? "noBlank" : null,
     hideOwned: q.get("mine") === "hide",
+    watchlist: q.get("watch") === "1",
     sort: isStatId(sort) ? sort : DEFAULT_FILTERS.sort,
     reverse: q.get("rev") === "1",
     cols: COLUMN_SET_IDS.find((c) => c === cols) ?? DEFAULT_FILTERS.cols,

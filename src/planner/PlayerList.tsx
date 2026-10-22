@@ -4,9 +4,10 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Kit } from "@/components/Kit";
 import { FdrPill } from "@/components/ui/FdrPill";
-import { Close } from "@/components/ui/Icons";
+import { Close, Star } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { getRules } from "@/config/rules";
+import { useWatchlist } from "@/scout/watchlist";
 import { isEmptySlot } from "@/engine/types";
 import {
   budgetFor,
@@ -66,12 +67,22 @@ export default function PlayerList() {
   }, []);
 
   const state = view.kind === "plan" ? view.state : null;
+  const watchIds = useWatchlist((s) => s.ids);
+  const watchlist = useMemo(() => new Set(watchIds), [watchIds]);
   const candidates = useMemo(
     () =>
       data && state && out !== null
-        ? candidatesFor(data, state, out, gw, { ...filters, query }, getRules(data.season).squad.maxPerClub)
+        ? candidatesFor(
+            data,
+            state,
+            out,
+            gw,
+            { ...filters, query },
+            getRules(data.season).squad.maxPerClub,
+            watchlist,
+          )
         : [],
-    [data, state, out, gw, filters, query],
+    [data, state, out, gw, filters, query, watchlist],
   );
 
   // The React Compiler isn't enabled, so nothing auto-memoises around this hook.
@@ -86,7 +97,7 @@ export default function PlayerList() {
   // New filters: back to the top.
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
-  }, [filters.sort, filters.team, filters.maxPrice, filters.affordable, query]);
+  }, [filters.sort, filters.team, filters.maxPrice, filters.affordable, filters.watchlist, query]);
 
   if (!data || !state || out === null) return null;
   // An empty slot is filled with someone in the removed player's position.
@@ -178,25 +189,41 @@ export default function PlayerList() {
               ))}
             </select>
           </div>
-          <label className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-muted">
               {candidates.length} player{candidates.length === 1 ? "" : "s"}
             </span>
-            <span className="flex items-center gap-2 font-medium">
-              Only show affordable
-              <input
-                type="checkbox"
-                checked={filters.affordable}
-                onChange={(e) => update({ affordable: e.target.checked })}
-                className="size-4 accent-[var(--mint)]"
-              />
+            <span className="flex items-center gap-3">
+              <button
+                type="button"
+                aria-pressed={filters.watchlist}
+                title="Players starred in Scout"
+                onClick={() => update({ watchlist: !filters.watchlist })}
+                className={`${filters.watchlist ? "accent-soft" : "glass-pill text-fg"} flex h-7 items-center gap-1 rounded-lg px-2 font-semibold`}
+              >
+                <Star filled={filters.watchlist} className="size-3" />
+                Watchlist
+              </button>
+              <label className="flex items-center gap-2 font-medium">
+                Only show affordable
+                <input
+                  type="checkbox"
+                  checked={filters.affordable}
+                  onChange={(e) => update({ affordable: e.target.checked })}
+                  className="size-4 accent-[var(--mint)]"
+                />
+              </label>
             </span>
-          </label>
+          </div>
         </header>
 
         <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {candidates.length === 0 ? (
-            <p className="p-6 text-center text-sm text-muted">No players match these filters.</p>
+            <p className="p-6 text-center text-sm text-muted">
+              {filters.watchlist && watchIds.length === 0
+                ? "Your watchlist is empty. Star players on the Scout tab to see them here."
+                : "No players match these filters."}
+            </p>
           ) : (
             <ul className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map((item) => (
@@ -205,7 +232,12 @@ export default function PlayerList() {
                   className="absolute inset-x-0 top-0"
                   style={{ height: item.size, transform: `translateY(${item.start}px)` }}
                 >
-                  <Row candidate={candidates[item.index]} sort={filters.sort} gw={gw} />
+                  <Row
+                    candidate={candidates[item.index]}
+                    sort={filters.sort}
+                    gw={gw}
+                    watched={watchlist.has(candidates[item.index].player.id)}
+                  />
                 </li>
               ))}
             </ul>
@@ -216,7 +248,17 @@ export default function PlayerList() {
   );
 }
 
-function Row({ candidate, sort, gw }: { candidate: Candidate; sort: SortKey; gw: number }) {
+function Row({
+  candidate,
+  sort,
+  gw,
+  watched,
+}: {
+  candidate: Candidate;
+  sort: SortKey;
+  gw: number;
+  watched: boolean;
+}) {
   const data = usePlanner((s) => s.data)!;
   const { player, value, reasons } = candidate;
   const team = data.teamById.get(player.team)!;
@@ -238,6 +280,12 @@ function Row({ candidate, sort, gw }: { candidate: Candidate; sort: SortKey; gw:
           <span className={`truncate text-sm font-semibold ${flagged ? "text-doubt" : ""}`}>
             {player.name}
           </span>
+          {watched && (
+            <span title="On your watchlist" className="shrink-0 text-cyan">
+              <Star filled className="size-3" />
+              <span className="sr-only">(watchlist)</span>
+            </span>
+          )}
           <span className="shrink-0 text-[11px] text-muted">{team.short}</span>
         </span>
         <span className="flex items-center gap-1.5">

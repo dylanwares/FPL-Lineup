@@ -3,15 +3,14 @@
 import { useEffect, useRef } from "react";
 import { Kit } from "@/components/Kit";
 import { FlagIcon } from "@/components/ui/Badges";
-import { FdrPill } from "@/components/ui/FdrPill";
 import { Close, Swap, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
-import { xpFor } from "@/data/model";
 import { sellingPrice } from "@/engine/money";
 import { canSwap, isStarter } from "@/engine/squad";
+import { FixtureXpList } from "./FixtureXpList";
 import { useGwView } from "./hooks";
 import { playerList } from "./lazy-parts";
-import { engineContext, fixtureMetrics, formatPrice, playerFlag } from "./model";
+import { engineContext, formatPrice, playerFlag } from "./model";
 import { closeSheet, removePlayer, setCaptain, setVice, startMoveFor, usePlanner } from "./store";
 
 /** The Sub / Transfer / Remove row: slightly smaller text and padding so a bigger icon fits three across. */
@@ -50,7 +49,6 @@ function Sheet({ id }: { id: number }) {
     !!state && owned && state.slots.some((other) => canSwap(state.slots, id, other, ctx.position, ctx.rules));
   const purchase = state?.purchase[id];
   const flag = playerFlag(player);
-  const fixtures = Array.from({ length: 5 }, (_, i) => gw + i).filter((g) => g <= data.events.length);
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center">
@@ -104,33 +102,7 @@ function Sheet({ id }: { id: number }) {
         <h3 className="mt-5 mb-2 text-[10px] font-semibold tracking-[0.2em] text-muted uppercase">
           Fixtures & projected points
         </h3>
-        <ul className="flex flex-col gap-1.5">
-          {fixtures.map((g) => {
-            const metrics = fixtureMetrics(data, player.team, g);
-            const xp = xpFor(data, player, g);
-            return (
-              <li key={g} className="flex items-center gap-3 text-sm">
-                <span className="w-10 text-xs text-muted tabular-nums">GW{g}</span>
-                <span className="flex flex-1 gap-1">
-                  {metrics.length === 0 ? (
-                    <FdrPill difficulty={null} className="px-2">
-                      Blank
-                    </FdrPill>
-                  ) : (
-                    metrics.map((m, i) => (
-                      <FdrPill key={i} difficulty={m.difficulty} className="px-2">
-                        {m.label}
-                      </FdrPill>
-                    ))
-                  )}
-                </span>
-                <span className="w-12 text-right font-semibold tabular-nums">
-                  {xp == null ? "–" : xp.toFixed(1)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <FixtureXpList data={data} player={player} gw={gw} />
 
         {state && owned && (
           <div className="mt-5 flex flex-col gap-2">

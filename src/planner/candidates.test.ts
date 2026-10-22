@@ -107,6 +107,16 @@ describe("candidatesFor", () => {
     expect(ids({ affordable: true })).toEqual([21, 22, 24]);
   });
 
+  it("narrows to the watchlist when asked", () => {
+    const watched = (ids_: number[]) =>
+      candidatesFor(D, state, 10, 7, { ...DEFAULT_FILTERS, watchlist: true }, 3, new Set(ids_)).map(
+        (c) => c.player.id,
+      );
+    // Defender 3 and squad midfielder 8 are starred but can't replace midfielder 10.
+    expect(watched([22, 20, 3, 8])).toEqual([20, 22]);
+    expect(watched([])).toEqual([]);
+  });
+
   it("keeps unaffordable and fourth-from-club players, with reasons", () => {
     const reasons = (st: GwState) =>
       new Map(candidatesFor(D, st, 10, 7, DEFAULT_FILTERS, 3).map((r) => [r.player.id, r.reasons]));
