@@ -6,12 +6,20 @@ import { ChevronDown } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { connect, usePlanner } from "./store";
 
+/** Pulls the team ID out of an FPL URL like …/entry/89353/event/7. */
+function entryIdFromLink(link: string): string | null {
+  const id = /\/entry\/(\d{1,10})(?!\d)/.exec(link)?.[1];
+  return id && Number(id) > 0 ? id : null;
+}
+
 export function ConnectScreen() {
   const importing = usePlanner((s) => s.phase === "importing");
   const error = usePlanner((s) => s.importError);
   const [value, setValue] = useState("");
   const id = Number(value);
   const valid = /^\d{1,10}$/.test(value) && id > 0;
+  const [link, setLink] = useState("");
+  const linkId = entryIdFromLink(link);
 
   return (
     <section className="flex flex-col gap-6 py-8">
@@ -84,6 +92,37 @@ export function ConnectScreen() {
             <span className="text-fg">/entry/</span> in the address bar, for example …/entry/
             <span className="font-semibold text-mint">1234567</span>/event/6.
           </p>
+          <label htmlFor="entry-link" className="mt-3 block text-xs font-semibold text-muted">
+            Or paste the whole link and we&apos;ll pull the ID out
+          </label>
+          <input
+            id="entry-link"
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            placeholder="https://fantasy.premierleague.com/entry/…"
+            value={link}
+            onChange={(e) => {
+              const next = e.target.value;
+              setLink(next);
+              const found = entryIdFromLink(next);
+              if (found) setValue(found);
+            }}
+            aria-describedby={link ? "entry-link-status" : undefined}
+            className="mt-1.5 h-10 w-full rounded-xl border border-[var(--line)] bg-[var(--glass-solid)] px-3 text-sm outline-none placeholder:text-faint focus:border-mint"
+          />
+          {link && (
+            <p id="entry-link-status" aria-live="polite" className="mt-1.5 text-xs">
+              {linkId ? (
+                <span className="text-muted">
+                  Found ID <span className="font-semibold text-mint tabular-nums">{linkId}</span>, filled in
+                  above.
+                </span>
+              ) : (
+                <span className="text-injured">Couldn&apos;t find an ID in that link. It should contain /entry/.</span>
+              )}
+            </p>
+          )}
         </details>
       </GlassPanel>
     </section>
