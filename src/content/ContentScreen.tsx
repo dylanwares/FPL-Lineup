@@ -8,6 +8,7 @@ import { readPref, writePref } from "@/lib/prefs";
 import { useFlip } from "@/lib/use-flip";
 import { fetchContent, filterContent, FILTERS, timeAgo, type ContentFilter } from "./feed";
 import type { ContentEntry } from "./model";
+import { readOpened, withOpened, writeOpened } from "./read";
 
 const FILTER_KEY = "fpl-lineup:content-filter";
 /** Coming back to the tab after this long fetches the latest items again. */
@@ -29,7 +30,17 @@ export function ContentScreen({ active }: { active: boolean }) {
   );
   const [feed, setFeed] = useState<Feed | null>(null);
   const [failed, setFailed] = useState(false);
+  // Items already opened, dimmed so new ones stand out. Kept on this device only.
+  const [opened, setOpened] = useState(readOpened);
   const loading = useRef(false);
+
+  const markOpened = useCallback((url: string) => {
+    setOpened((prev) => {
+      const next = withOpened(prev, url);
+      writeOpened(next);
+      return next;
+    });
+  }, []);
 
   /** Fetches the feed; state only changes once the request settles. */
   const load = useCallback(() => {
@@ -53,6 +64,7 @@ export function ContentScreen({ active }: { active: boolean }) {
 
   // Filtering is local, so rows that stay slide into their new places.
   const items = feed ? filterContent(feed.items, filter) : [];
+  const openedSet = new Set(opened);
   const flip = useFlip<string>(items.map((i) => i.url).join(), { enter: true });
 
   return (
@@ -79,7 +91,12 @@ export function ContentScreen({ active }: { active: boolean }) {
         <GlassPanel as="ul" className="divide-y divide-line overflow-hidden">
           {items.map((item) => (
             <li key={item.url} ref={flip(item.url)}>
-              <ContentCard item={item} now={feed!.loadedAt} />
+              <ContentCard
+                item={item}
+                now={feed!.loadedAt}
+                opened={openedSet.has(item.url)}
+                onOpen={markOpened}
+              />
             </li>
           ))}
         </GlassPanel>
@@ -105,13 +122,26 @@ export function ContentScreen({ active }: { active: boolean }) {
   );
 }
 
-function ContentCard({ item, now }: { item: ContentEntry; now: number }) {
+function ContentCard({
+  item,
+  now,
+  opened,
+  onOpen,
+}: {
+  item: ContentEntry;
+  now: number;
+  opened: boolean;
+  onOpen: (url: string) => void;
+}) {
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex gap-3 p-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-mint"
+      // Click, Enter and middle-click all open it.
+      onClick={() => onOpen(item.url)}
+      onAuxClick={() => onOpen(item.url)}
+      className={`flex gap-3 p-3 transition-[background-color,opacity] hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-mint ${opened ? "opacity-40" : ""}`}
     >
       <Thumbnail item={item} />
       <div className="min-w-0 flex-1">
@@ -128,7 +158,10 @@ function ContentCard({ item, now }: { item: ContentEntry; now: number }) {
             {item.summary}
           </p>
         )}
-        <span className="sr-only">{item.kind === "video" ? "Video" : "Article"}, opens in a new tab</span>
+        <span className="sr-only">
+          {opened && "Already opened. "}
+          {item.kind === "video" ? "Video" : "Article"}, opens in a new tab
+        </span>
       </div>
     </a>
   );
