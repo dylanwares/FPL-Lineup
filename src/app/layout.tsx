@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Unbounded } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Header } from "@/components/Header";
 import { themeScript } from "@/components/ThemeToggle";
 import { AccountLayer } from "@/account/AccountLayer";
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           FPL Lineup is an independent fan-made planner and is not affiliated with, or endorsed by, the
           Premier League or Fantasy Premier League.
         </footer>
+        <Analytics />
       </body>
     </html>
   );
