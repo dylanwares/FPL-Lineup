@@ -27,6 +27,7 @@
     "@neondatabase/auth": "0.6.0-beta",
     "@neondatabase/serverless": "^1.2.0",
     "@tanstack/react-virtual": "^3.14.17",
+    "@vercel/analytics": "^2.0.1",
     "drizzle-orm": "^0.45.4",
     "idb": "^8.0.4",
     "next": "16.4.0",
