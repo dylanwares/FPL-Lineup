@@ -1,32 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { appendPage, contentUrl, timeAgo } from "./feed";
+import { filterContent, timeAgo } from "./feed";
 import type { ContentEntry } from "./model";
 
-const entry = (id: string): ContentEntry => ({
-  id,
-  kind: "article",
+const entry = (url: string, kind: ContentEntry["kind"]): ContentEntry => ({
+  kind,
   source: "Fantasy Football Scout",
-  url: `https://example.com/${id}`,
-  title: id,
+  url,
+  title: url,
   summary: null,
   imageUrl: null,
   publishedAt: "2026-10-26T12:00:00Z",
 });
 
-it("contentUrl adds only the parameters in use", () => {
-  expect(contentUrl("all")).toBe("/api/content");
-  expect(contentUrl("video")).toBe("/api/content?kind=video");
-  expect(contentUrl("article", "2026-10-26T12:00:00.000Z_abc")).toBe(
-    "/api/content?kind=article&before=2026-10-26T12%3A00%3A00.000Z_abc",
-  );
-});
-
-it("appendPage skips items already shown", () => {
-  expect(appendPage([entry("a"), entry("b")], [entry("b"), entry("c")]).map((e) => e.id)).toEqual([
-    "a",
-    "b",
-    "c",
-  ]);
+it("filterContent keeps one kind, or everything for All", () => {
+  const items = [entry("a", "article"), entry("v", "video")];
+  expect(filterContent(items, "all")).toBe(items);
+  expect(filterContent(items, "video").map((i) => i.url)).toEqual(["v"]);
 });
 
 describe("timeAgo", () => {

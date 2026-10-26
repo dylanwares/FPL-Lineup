@@ -1,12 +1,13 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "@/components/ui/Icons";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { Segmented } from "@/components/ui/Segmented";
 import type { GameData } from "@/data/model";
 import { stateAt } from "@/engine/plan";
 import { readPref, writePref } from "@/lib/prefs";
+import { useFlip } from "@/lib/use-flip";
 import { planResult } from "@/planner/model";
 import { usePlanner } from "@/planner/store";
 import {
@@ -72,7 +73,7 @@ function Ticker({ data }: { data: GameData }) {
 
   const gws = rows[0]?.cells.map((c) => c.gw) ?? [];
   const end = Math.min(data.events.length, start + range - 1);
-  const flip = useFlip(rows.map((r) => r.team.id).join());
+  const flip = useFlip<number>(rows.map((r) => r.team.id).join());
 
   return (
     <>
@@ -237,35 +238,4 @@ function Legend() {
       <span>HOME in capitals, away in lower case</span>
     </div>
   );
-}
-
-/**
- * Animates rows to their new places when the order changes (FLIP), so a
- * re-sort or filter reads as movement rather than a jump.
- */
-function useFlip(order: string) {
-  const els = useRef(new Map<number, HTMLElement>());
-  const tops = useRef(new Map<number, number>());
-
-  useLayoutEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const next = new Map<number, number>();
-    for (const [id, el] of els.current) {
-      const top = el.getBoundingClientRect().top;
-      next.set(id, top);
-      const before = tops.current.get(id);
-      if (!reduce && before !== undefined && before !== top && el.offsetParent) {
-        el.animate([{ transform: `translateY(${before - top}px)` }, { transform: "none" }], {
-          duration: 320,
-          easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
-        });
-      }
-    }
-    tops.current = next;
-  }, [order]);
-
-  return (id: number) => (el: HTMLElement | null) => {
-    if (el) els.current.set(id, el);
-    else els.current.delete(id);
-  };
 }

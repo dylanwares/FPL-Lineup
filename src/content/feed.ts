@@ -1,4 +1,4 @@
-import type { ContentEntry, ContentKind, ContentPage } from "./model";
+import type { ContentEntry, ContentFeed, ContentKind } from "./model";
 
 export type ContentFilter = "all" | ContentKind;
 
@@ -8,25 +8,14 @@ export const FILTERS: [ContentFilter, string][] = [
   ["video", "Videos"],
 ];
 
-export function contentUrl(filter: ContentFilter, before?: string): string {
-  const params = new URLSearchParams();
-  if (filter !== "all") params.set("kind", filter);
-  if (before) params.set("before", before);
-  const query = params.toString();
-  return query ? `/api/content?${query}` : "/api/content";
-}
-
-export async function fetchContent(filter: ContentFilter, before?: string): Promise<ContentPage> {
-  const res = await fetch(contentUrl(filter, before));
+export async function fetchContent(): Promise<ContentEntry[]> {
+  const res = await fetch("/api/content");
   if (!res.ok) throw new Error(`Content feed failed with ${res.status}`);
-  return (await res.json()) as ContentPage;
+  return ((await res.json()) as ContentFeed).items;
 }
 
-/** Appends an older page, skipping anything already shown (the feed may have moved on). */
-export function appendPage(items: ContentEntry[], page: ContentEntry[]): ContentEntry[] {
-  const seen = new Set(items.map((i) => i.id));
-  return [...items, ...page.filter((i) => !seen.has(i.id))];
-}
+export const filterContent = (items: ContentEntry[], filter: ContentFilter) =>
+  filter === "all" ? items : items.filter((i) => i.kind === filter);
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;

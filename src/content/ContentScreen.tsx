@@ -5,16 +5,16 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import { PillButton } from "@/components/ui/PillButton";
 import { Segmented } from "@/components/ui/Segmented";
 import { readPref, writePref } from "@/lib/prefs";
-import { appendPage, fetchContent, FILTERS, timeAgo, type ContentFilter } from "./feed";
+import { useFlip } from "@/lib/use-flip";
+import { fetchContent, filterContent, FILTERS, timeAgo, type ContentFilter } from "./feed";
 import type { ContentEntry } from "./model";
 
 const FILTER_KEY = "fpl-lineup:content-filter";
-/** Coming back to the tab after this long fetches the newest items again. */
+/** Coming back to the tab after this long fetches the latest items again. */
 const STALE_MS = 5 * 60_000;
 
 interface Feed {
   items: ContentEntry[];
-  nextCursor: string | null;
   loadedAt: number;
 }
 
@@ -27,68 +27,33 @@ export function ContentScreen({ active }: { active: boolean }) {
       "all",
     ),
   );
-  // Each filter's feed is kept, so switching back is instant.
-  const [feeds, setFeeds] = useState<Partial<Record<ContentFilter, Feed>>>({});
+  const [feed, setFeed] = useState<Feed | null>(null);
   const [failed, setFailed] = useState(false);
-  const inflight = useRef(new Set<string>());
-  const feed = feeds[filter];
+  const loading = useRef(false);
 
-  /**
-   * The newest page (replacing what's shown), or with `before`, the next older
-   * one. State only changes once the request settles.
-   */
-  const load = useCallback((f: ContentFilter, before?: string) => {
-    const key = `${f} ${before ?? ""}`;
-    if (inflight.current.has(key)) return;
-    inflight.current.add(key);
-    fetchContent(f, before)
+  /** Fetches the feed; state only changes once the request settles. */
+  const load = useCallback(() => {
+    if (loading.current) return;
+    loading.current = true;
+    fetchContent()
       .then(
-        (page) => {
-          const loadedAt = Date.now();
-          setFeeds((prev) => {
-            const old = prev[f];
-            return {
-              ...prev,
-              [f]:
-                before && old
-                  ? { ...old, items: appendPage(old.items, page.items), nextCursor: page.nextCursor }
-                  : { ...page, loadedAt },
-            };
-          });
+        (items) => {
+          setFeed({ items, loadedAt: Date.now() });
           setFailed(false);
         },
         () => setFailed(true),
       )
-      .finally(() => inflight.current.delete(key));
+      .finally(() => (loading.current = false));
   }, []);
-
-  const retry = (before?: string) => {
-    setFailed(false);
-    load(filter, before);
-  };
 
   // Only fetched once the tab is opened; refreshed when it comes back after a while.
   useEffect(() => {
-    if (!active) return;
-    const shown = feeds[filter];
-    if (!shown || Date.now() - shown.loadedAt > STALE_MS) load(filter);
-  }, [active, filter, feeds, load]);
+    if (active && (!feed || Date.now() - feed.loadedAt > STALE_MS)) load();
+  }, [active, feed, load]);
 
-  // Loads the next page as the end of the list scrolls into view.
-  const end = useRef<HTMLDivElement>(null);
-  const nextCursor = feed?.nextCursor;
-  useEffect(() => {
-    const el = end.current;
-    if (!el || !active || !nextCursor || failed) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) load(filter, nextCursor);
-      },
-      { rootMargin: "600px 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [active, filter, nextCursor, failed, load]);
+  // Filtering is local, so rows that stay slide into their new places.
+  const items = feed ? filterContent(feed.items, filter) : [];
+  const flip = useFlip<string>(items.map((i) => i.url).join(), { enter: true });
 
   return (
     <section aria-labelledby="content-title" className="flex flex-col gap-3 py-4">
@@ -110,44 +75,31 @@ export function ContentScreen({ active }: { active: boolean }) {
         />
       </div>
 
-      {feed ? (
-        feed.items.length ? (
-          <GlassPanel as="ul" className="divide-y divide-line overflow-hidden">
-            {feed.items.map((item) => (
-              <li key={item.id}>
-                <ContentCard item={item} now={feed.loadedAt} />
-              </li>
-            ))}
-          </GlassPanel>
-        ) : (
-          <GlassPanel className="p-5 text-sm text-muted">
-            Nothing here yet. New articles and videos arrive every 15 minutes.
-          </GlassPanel>
-        )
+      {items.length ? (
+        <GlassPanel as="ul" className="divide-y divide-line overflow-hidden">
+          {items.map((item) => (
+            <li key={item.url} ref={flip(item.url)}>
+              <ContentCard item={item} now={feed!.loadedAt} />
+            </li>
+          ))}
+        </GlassPanel>
+      ) : feed ? (
+        <GlassPanel className="p-5 text-sm text-muted">Nothing new right now. Check back soon.</GlassPanel>
       ) : failed ? (
         <GlassPanel className="flex items-center justify-between gap-3 p-5 text-sm text-muted">
           Couldn’t load the latest content. Check your connection.
-          <PillButton size="sm" onClick={() => retry()}>
+          <PillButton
+            size="sm"
+            onClick={() => {
+              setFailed(false);
+              load();
+            }}
+          >
             Retry
           </PillButton>
         </GlassPanel>
       ) : (
         <div className="glass h-[36rem] animate-pulse rounded-2xl" />
-      )}
-
-      {feed && (
-        <div ref={end} className="flex min-h-10 items-center justify-center text-[12px] text-muted">
-          {failed ? (
-            <PillButton size="sm" onClick={() => retry(feed.nextCursor ?? undefined)}>
-              Couldn’t load more · Retry
-            </PillButton>
-          ) : feed.nextCursor ? (
-            // The next page is already on its way: this only shows once the end is in view.
-            "Loading…"
-          ) : (
-            feed.items.length > 0 && "You’re all caught up."
-          )}
-        </div>
       )}
     </section>
   );

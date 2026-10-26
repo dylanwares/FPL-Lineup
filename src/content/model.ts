@@ -2,11 +2,8 @@ export const CONTENT_KINDS = ["article", "video"] as const;
 
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
-export const isContentKind = (v: unknown): v is ContentKind => CONTENT_KINDS.includes(v as ContentKind);
-
-/** One article or video, as GET /api/content sends it. */
+/** One article or video, as GET /api/content sends it. The URL identifies it. */
 export interface ContentEntry {
-  id: string;
   kind: ContentKind;
   /** The source's display name. */
   source: string;
@@ -18,8 +15,7 @@ export interface ContentEntry {
   publishedAt: string;
 }
 
-export interface ContentPage {
+/** GET /api/content: every source's latest items, newest first. */
+export interface ContentFeed {
   items: ContentEntry[];
-  /** Pass as `before` for the next (older) page; null at the end. */
-  nextCursor: string | null;
 }

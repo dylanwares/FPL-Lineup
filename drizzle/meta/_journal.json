@@ -15,13 +15,6 @@
       "when": 1792142503370,
       "tag": "0001_plan_edited_at",
       "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1793038899242,
-      "tag": "0002_content_items",
-      "breakpoints": true
     }
   ]
 }
