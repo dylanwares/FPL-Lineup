@@ -67,6 +67,24 @@ const TABS: { tab: Tab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    tab: "content",
+    label: "Content",
+    icon: (
+      // A folded newspaper: a headline, a picture and columns of text.
+      <svg viewBox="0 0 24 24" className="size-[22px]" aria-hidden="true">
+        <path
+          d="M17.5 7.5h2.25a1.25 1.25 0 0 1 1.25 1.25v9.5a2.5 2.5 0 0 1-5 0V5.25A1.25 1.25 0 0 0 14.75 4H4.25A1.25 1.25 0 0 0 3 5.25v13a2.75 2.75 0 0 0 2.75 2.75h12.75"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <rect x="6.5" y="7.5" width="5" height="4" rx="0.75" fill="currentColor" />
+        <path d="M6.5 14.75h6M6.5 17.5h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 /**
@@ -105,7 +123,7 @@ export function TabBar({ tab }: { tab: Tab }) {
         <span
           ref={lens}
           aria-hidden="true"
-          className="tabbar-lens absolute inset-y-1 left-1 w-[5.5rem] rounded-full"
+          className="tabbar-lens absolute inset-y-1 left-1 w-[4.75rem] rounded-full"
           style={{ transform: `translateX(${index * 100}%)` }}
         />
         {TABS.map((t) => (
@@ -114,7 +132,7 @@ export function TabBar({ tab }: { tab: Tab }) {
             href={TAB_PATHS[t.tab]}
             onClick={navClick(t.tab)}
             aria-current={t.tab === tab ? "page" : undefined}
-            className="tabbar-tab relative flex w-[5.5rem] flex-col items-center gap-0.5 rounded-full pt-1.5 pb-1 text-[10px] font-semibold"
+            className="tabbar-tab relative flex w-[4.75rem] flex-col items-center gap-0.5 rounded-full pt-1.5 pb-1 text-[10px] font-semibold"
           >
             {t.icon}
             {t.label}

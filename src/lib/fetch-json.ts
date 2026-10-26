@@ -37,7 +37,20 @@ function isRetryable(status: number) {
  * GET JSON with a timeout and exponential backoff on network errors, 429 and
  * 5xx. Honours Retry-After (seconds). 4xx other than 408/429 fail immediately.
  */
-export async function fetchJson<T>(url: string, opts: FetchJsonOptions = {}): Promise<T> {
+export function fetchJson<T>(url: string, opts: FetchJsonOptions = {}): Promise<T> {
+  return fetchWithRetry(url, opts, (res) => res.json() as Promise<T>);
+}
+
+/** GET text (e.g. an RSS feed), with fetchJson's timeout and retries. Pass an `accept` header. */
+export function fetchText(url: string, opts: FetchJsonOptions = {}): Promise<string> {
+  return fetchWithRetry(url, opts, (res) => res.text());
+}
+
+async function fetchWithRetry<T>(
+  url: string,
+  opts: FetchJsonOptions,
+  read: (res: Response) => Promise<T>,
+): Promise<T> {
   const {
     retries = 3,
     baseDelayMs = 500,
@@ -55,7 +68,7 @@ export async function fetchJson<T>(url: string, opts: FetchJsonOptions = {}): Pr
         headers: { ...DEFAULT_HEADERS, ...headers },
         signal: AbortSignal.timeout(timeoutMs),
       });
-      if (res.ok) return (await res.json()) as T;
+      if (res.ok) return await read(res);
 
       lastError = new FetchJsonError(`GET ${url} failed with ${res.status}`, url, res.status);
       if (!isRetryable(res.status)) throw lastError;

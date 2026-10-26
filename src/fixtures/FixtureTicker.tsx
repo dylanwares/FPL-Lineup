@@ -3,8 +3,10 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "@/components/ui/Icons";
 import { GlassPanel } from "@/components/ui/GlassPanel";
+import { Segmented } from "@/components/ui/Segmented";
 import type { GameData } from "@/data/model";
 import { stateAt } from "@/engine/plan";
+import { readPref, writePref } from "@/lib/prefs";
 import { planResult } from "@/planner/model";
 import { usePlanner } from "@/planner/store";
 import {
@@ -21,23 +23,6 @@ import {
 
 const RANGE_KEY = "fpl-lineup:ticker-range";
 const SORT_KEY = "fpl-lineup:ticker-sort";
-
-function readPref<T>(key: string, valid: readonly T[], fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return valid.find((v) => String(v) === raw) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writePref(key: string, value: string | number) {
-  try {
-    localStorage.setItem(key, String(value));
-  } catch {
-    // Storage blocked: the choice lasts for this visit.
-  }
-}
 
 /** The Fixtures tab: every club's next 5 or 8 gameweeks, coloured by FPL difficulty. */
 export function FixtureTicker() {
@@ -235,34 +220,6 @@ function Cell({ cell, data }: { cell: TickerCell; data: GameData }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function Segmented<T extends string | number>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: [T, string][];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div role="group" aria-label={label} className="glass-pill flex h-9 rounded-xl p-0.5">
-      {options.map(([v, text]) => (
-        <button
-          key={String(v)}
-          type="button"
-          aria-pressed={v === value}
-          onClick={() => onChange(v)}
-          className={`rounded-[0.6rem] px-3 text-[13px] font-semibold transition-colors ${v === value ? "accent-soft" : "text-muted"}`}
-        >
-          {text}
-        </button>
-      ))}
     </div>
   );
 }

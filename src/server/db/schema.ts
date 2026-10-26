@@ -11,6 +11,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { ContentKind } from "@/content/model";
 import type { Move, Snapshot } from "@/engine/types";
 
 /*
@@ -78,3 +79,30 @@ export const plans = pgTable(
 );
 
 export type PlanRow = typeof plans.$inferSelect;
+
+/**
+ * Articles and videos for the Content tab, pulled from each source's feed by
+ * scripts/fetch-content.ts. Shared by everyone, so no user id. The URL is
+ * the dedupe key: a feed lists the same items run after run.
+ */
+export const contentItems = pgTable(
+  "content_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** A source id from src/content/sources.ts. */
+    source: text("source").notNull(),
+    kind: text("kind").$type<ContentKind>().notNull(),
+    url: text("url").notNull().unique(),
+    title: text("title").notNull(),
+    summary: text("summary"),
+    imageUrl: text("image_url"),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // The feed pages newest first, by (published_at, id).
+    index("content_items_published_idx").on(t.publishedAt.desc(), t.id.desc()),
+    index("content_items_kind_published_idx").on(t.kind, t.publishedAt.desc(), t.id.desc()),
+    check("content_items_kind", sql`${t.kind} in ('article', 'video')`),
+  ],
+);

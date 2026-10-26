@@ -1,12 +1,13 @@
 /*
- * FPL Lineup service worker: opens the planner, fixtures and scout offline.
+ * FPL Lineup service worker: opens the planner, fixtures, scout and content offline.
  *
- * - Pages (/, /fixtures, /scout): network first, so a new release is picked up on
+ * - Pages (/, /fixtures, /scout, /content): network first, so a new release is picked up on
  *   the next launch; the cached copy answers when offline or after 3 s.
  * - /_next/static and /icons: content-hashed, so cache first. Precached from
  *   the pages' HTML on install; chunks loaded before this worker took control
  *   are sent over by the page (see PwaSetup).
  * - Past gameweeks (/api/team/{id}/picks/{gw}): network first, cached for offline.
+ * - The Content feed (/api/content): network first, cached for offline.
  * - Player photos (/api/photo): served from cache, refreshed in the background.
  * Game data, teams and plans live in IndexedDB, so they need nothing here.
  */
@@ -15,7 +16,7 @@ const VERSION = "v1";
 const SHELL = `shell-${VERSION}`;
 const STATIC = "static"; // hashed URLs never change, so this survives new versions
 const RUNTIME = `runtime-${VERSION}`;
-const PAGES = ["/", "/fixtures", "/scout"];
+const PAGES = ["/", "/fixtures", "/scout", "/content"];
 const STATIC_LIMIT = 400;
 const PAGE_TIMEOUT_MS = 3000;
 
@@ -49,11 +50,12 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") event.respondWith(page(request, url));
   else if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
     event.respondWith(cacheFirst(request));
-  } else if (/^\/api\/team\/\d+\/picks\/\d+$/.test(url.pathname)) event.respondWith(networkFirst(request));
-  else if (url.pathname.startsWith("/api/photo/")) event.respondWith(staleWhileRevalidate(request));
+  } else if (/^\/api\/team\/\d+\/picks\/\d+$/.test(url.pathname) || url.pathname === "/api/content") {
+    event.respondWith(networkFirst(request));
+  } else if (url.pathname.startsWith("/api/photo/")) event.respondWith(staleWhileRevalidate(request));
 });
 
-/** Both pages' HTML, plus every hashed script, stylesheet and font they reference. */
+/** Every page's HTML, plus every hashed script, stylesheet and font they reference. */
 async function precache() {
   const shell = await caches.open(SHELL);
   const assets = new Set();
@@ -90,7 +92,7 @@ async function page(request, url) {
     if (res.ok && key) void cache.put(key, res.clone());
     return res;
   });
-  // Both pages are the same app shell, so either will do offline.
+  // Every page is the same app shell, so either will do offline.
   const cached = (key && (await cache.match(key))) || (await cache.match("/"));
   if (!cached) return network;
   const timeout = new Promise((resolve) => setTimeout(() => resolve(cached), PAGE_TIMEOUT_MS));
