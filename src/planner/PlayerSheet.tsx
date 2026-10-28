@@ -3,20 +3,27 @@
 import { useEffect, useRef } from "react";
 import { Kit } from "@/components/Kit";
 import { FlagIcon } from "@/components/ui/Badges";
-import { Close, EyeOff, Swap, Transfer } from "@/components/ui/Icons";
+import { Close, EyeOff, Spotlight, Swap, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { sellingPrice } from "@/engine/money";
 import { canSwap, isStarter } from "@/engine/squad";
 import { FixtureXpList } from "./FixtureXpList";
 import { useGwView } from "./hooks";
 import { playerList } from "./lazy-parts";
-import { engineContext, formatPrice, playerFlag } from "./model";
-import { closeSheet, hidePlayer, removePlayer, setCaptain, setVice, startMoveFor, usePlanner } from "./store";
+import { engineContext, formatPrice, playerFlag, POSITION_NAMES } from "./model";
+import {
+  closeSheet,
+  hidePlayer,
+  openSpotlight,
+  removePlayer,
+  setCaptain,
+  setVice,
+  startMoveFor,
+  usePlanner,
+} from "./store";
 
 /** The Sub / Transfer / Remove row: slightly smaller text and padding so a bigger icon fits three across. */
 const ACTION = "justify-center gap-1.5! px-2! text-[13px]!";
-
-const POSITION_NAMES = { GKP: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
 
 export function PlayerSheet() {
   const id = usePlanner((s) => s.sheetPlayer);
@@ -78,6 +85,9 @@ function Sheet({ id }: { id: number }) {
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
+            <PillButton size="icon" aria-label="Spotlight player" onClick={() => openSpotlight(id)}>
+              <Spotlight className="size-4" />
+            </PillButton>
             <PillButton size="icon" aria-label="Hide player" onClick={() => hidePlayer(id)}>
               <EyeOff className="size-4" />
             </PillButton>

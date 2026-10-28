@@ -4,19 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { Kit } from "@/components/Kit";
 import { goTo } from "@/components/nav";
 import { FlagIcon } from "@/components/ui/Badges";
-import { Close, Star, Transfer } from "@/components/ui/Icons";
+import { Close, Spotlight, Star, Transfer } from "@/components/ui/Icons";
 import { PillButton } from "@/components/ui/PillButton";
 import { getRules } from "@/config/rules";
 import type { Player } from "@/data/model";
 import { stateAt } from "@/engine/plan";
 import { FixtureXpList } from "@/planner/FixtureXpList";
-import { formatPrice, planResult, playerFlag } from "@/planner/model";
-import { plannableGw, setGw, transferPlayer, usePlanner } from "@/planner/store";
+import { formatPrice, planResult, playerFlag, POSITION_NAMES } from "@/planner/model";
+import { openSpotlight, plannableGw, setGw, transferPlayer, usePlanner } from "@/planner/store";
 import { statDef, type ScoutContext, type StatId } from "./stats";
 import { transferOptions, type TransferOption } from "./transfer";
 import { toggleWatch, useWatchlist } from "./watchlist";
-
-const POSITION_NAMES = { GKP: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
 
 /** Plainer labels than the column headers, where those are cryptic. */
 const LABELS: Partial<Record<StatId, string>> = {
@@ -110,6 +108,16 @@ export function ScoutSheet({ ctx, id, onClose }: { ctx: ScoutContext; id: number
                 {team.name} · {POSITION_NAMES[player.pos]}
               </p>
             </div>
+            <PillButton
+              size="icon"
+              aria-label="Spotlight player"
+              onClick={() => {
+                openSpotlight(id);
+                onClose();
+              }}
+            >
+              <Spotlight className="size-4" />
+            </PillButton>
             <PillButton
               size="icon"
               pressed={watched}

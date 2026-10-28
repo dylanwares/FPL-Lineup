@@ -65,6 +65,13 @@ export const EyeOff = (p: P) => (
     {...p}
   />
 );
+/** A focus frame round a figure: the player spotlight. */
+export const Spotlight = (p: P) => (
+  <Icon
+    d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8.5 16a3.5 3.5 0 0 1 7 0"
+    {...p}
+  />
+);
 export const Close = (p: P) => <Icon d="M6 6l12 12M18 6 6 18" {...p} />;
 export const Camera = (p: P) => (
   <Icon d="M4 8h3l2-3h6l2 3h3v11H4ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" {...p} />

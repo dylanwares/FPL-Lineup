@@ -86,6 +86,29 @@ test("the player sheet hides a player, and a tap reveals them", async ({ page, p
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("the player sheet opens a spotlight, which blurs, reveals and closes", async ({ page, planner }) => {
+  void planner;
+  const n = await names(page);
+  await token(page, n[12]).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Spotlight player" }).click();
+  const spotlight = page.getByTestId("spotlight");
+  await expect(spotlight).toBeVisible();
+  await expect(spotlight.getByText(n[12], { exact: true })).toBeVisible();
+  await expect(spotlight.locator("dt")).toHaveCount(8);
+
+  await spotlight.getByRole("button", { name: "Hide player" }).click();
+  await expect(spotlight.locator("[data-hidden]")).toHaveCount(1);
+  await spotlight.getByRole("button", { name: "Reveal player" }).first().click();
+  await expect(spotlight.locator("[data-hidden]")).toHaveCount(0);
+
+  // A tap on the backdrop hides the buttons for a clean recording.
+  await spotlight.click({ position: { x: 5, y: 5 } });
+  await expect(spotlight.getByRole("button", { name: "Close spotlight" })).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await expect(spotlight).toHaveCount(0);
+});
+
 test("transfer mode: sell, buy, undo and reset", async ({ page, planner }) => {
   const n = await names(page);
   const transfer = page.getByRole("button", { name: "Transfer", exact: true });

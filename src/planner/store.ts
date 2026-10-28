@@ -59,6 +59,8 @@ export interface PlannerState {
   mode: Mode;
   /** Players blurred out for a reveal (content creation). Kept for this visit, across gameweeks. */
   hidden: number[];
+  /** Player shown full-screen in the spotlight (content creation), over any tab. */
+  spotlight: number | null;
   /** Sub mode: the player picked first. Transfer mode: the player being sold (opens the player list). */
   selected: number | null;
   /** The mode was started from a player's sheet for one move: it switches off after that move (or a cancel). */
@@ -89,6 +91,7 @@ export const usePlanner = create<PlannerState>(() => ({
   past: {},
   mode: "none",
   hidden: [],
+  spotlight: null,
   selected: null,
   oneShot: false,
   dragFrom: null,
@@ -449,6 +452,15 @@ function playerName(id: number) {
 export function hidePlayer(id: number) {
   const { hidden } = get();
   set({ hidden: hidden.includes(id) ? hidden : [...hidden, id], sheetPlayer: null });
+}
+
+/** Opens the full-screen spotlight on a player (from their sheet). */
+export function openSpotlight(id: number) {
+  set({ spotlight: id, sheetPlayer: null });
+}
+
+export function closeSpotlight() {
+  set({ spotlight: null });
 }
 
 /**

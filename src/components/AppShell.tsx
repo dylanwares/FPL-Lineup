@@ -3,11 +3,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { lazyComponent } from "@/lib/lazy";
 import { PlannerApp } from "@/planner/PlannerApp";
+import { usePlanner } from "@/planner/store";
 import { TAB_TITLES, useTab, type Tab } from "./nav";
 import { TabBar } from "./TabBar";
 
 const fixtureTicker = lazyComponent(() => import("@/fixtures/FixtureTicker").then((m) => m.FixtureTicker));
 const scoutScreen = lazyComponent(() => import("@/scout/ScoutScreen").then((m) => m.ScoutScreen));
+/** Content creation only, so it loads on first use. */
+const spotlight = lazyComponent(() => import("@/spotlight/Spotlight").then((m) => m.default));
 
 /**
  * Every screen, kept mounted once opened so switching is instant and each
@@ -16,6 +19,7 @@ const scoutScreen = lazyComponent(() => import("@/scout/ScoutScreen").then((m) =
  */
 export function AppShell() {
   const tab = useTab();
+  const spotlightOpen = usePlanner((s) => s.spotlight != null);
   const [tickerOpened, setTickerOpened] = useState(tab === "fixtures");
   if (tab === "fixtures" && !tickerOpened) setTickerOpened(true);
   const [scoutOpened, setScoutOpened] = useState(tab === "scout");
@@ -57,6 +61,7 @@ export function AppShell() {
       <div hidden={tab !== "fixtures"}>{tickerOpened && <fixtureTicker.Lazy />}</div>
       <div hidden={tab !== "scout"}>{scoutOpened && <scoutScreen.Lazy active={tab === "scout"} />}</div>
       <TabBar tab={tab} />
+      {spotlightOpen && <spotlight.Lazy />}
     </>
   );
 }

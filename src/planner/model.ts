@@ -105,6 +105,13 @@ export function uniquePlanName(plans: Plan[], base: string): string {
 
 /* ---------------- Display helpers ---------------- */
 
+export const POSITION_NAMES = {
+  GKP: "Goalkeeper",
+  DEF: "Defender",
+  MID: "Midfielder",
+  FWD: "Forward",
+} as const;
+
 /** Tenths of £1m → "£8.5m" (or "-£0.4m"). */
 export function formatPrice(tenths: number): string {
   const sign = tenths < 0 ? "-" : "";
