@@ -94,7 +94,15 @@ test("the player sheet opens a spotlight, which blurs, reveals and closes", asyn
   const spotlight = page.getByTestId("spotlight");
   await expect(spotlight).toBeVisible();
   await expect(spotlight.getByText(n[12], { exact: true })).toBeVisible();
-  await expect(spotlight.locator("dt")).toHaveCount(8);
+  await expect(spotlight.locator("[data-stat]")).toHaveCount(8);
+
+  // A tap on any stat tile hides them all; another brings them back.
+  await spotlight.locator('[data-stat="Price"]').click();
+  await expect(spotlight.locator('[data-stat][aria-pressed="false"]')).toHaveCount(8);
+  await expect(spotlight.getByText("Form")).toBeHidden();
+  await spotlight.locator('[data-stat="Owned"]').click();
+  await expect(spotlight.locator('[data-stat][aria-pressed="true"]')).toHaveCount(8);
+  await expect(spotlight.getByText("Form")).toBeVisible();
 
   await spotlight.getByRole("button", { name: "Hide player" }).click();
   await expect(spotlight.locator("[data-hidden]")).toHaveCount(1);

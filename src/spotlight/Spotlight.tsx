@@ -39,13 +39,16 @@ const FIXTURE_GWS = 5;
  * for captions added in an editor. It's always the dark look (like the share
  * image), so the colours are fixed rather than theme tokens. A tap on the
  * backdrop hides the buttons for a clean recording; Reveal blurs the player
- * for a "guess who" and a tap on them brings them back.
+ * for a "guess who" and a tap on them brings them back. A tap on any stat
+ * tile hides them all (dashed outlines while the buttons show, empty without).
  */
 export default function Spotlight() {
   const id = usePlanner((s) => s.spotlight);
   const data = usePlanner((s) => s.data);
   const [chrome, setChrome] = useState(true);
   const [hidden, setHidden] = useState(false);
+  /** The stat tiles, all tapped away at once. */
+  const [statsHidden, setStatsHidden] = useState(false);
 
   // Escape closes; the planner's arrow-key shortcuts stay off while this is open.
   useEffect(() => {
@@ -119,19 +122,41 @@ export default function Spotlight() {
           </span>
         </button>
 
-        <dl className="mt-[6cqw] grid w-full grid-cols-4 gap-[2cqw] text-center">
-          {stats.map(([label, value]) => (
-            <div
-              key={label}
-              className="rounded-[3cqw] bg-white/[0.06] px-[1cqw] py-[2.4cqw] ring-1 ring-white/[0.07]"
-            >
-              <dt className="truncate text-[2.6cqw] text-[#a09bb5]">{label}</dt>
-              <dd className="mt-[0.6cqw] text-[4.6cqw] leading-tight font-semibold tabular-nums">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
         <Fixtures data={data} player={player} gw={ctx.gw} />
+
+        {/* A tap on any tile hides them all, leaving the space empty for text added in an editor; another brings them back. */}
+        <div className="mt-[6cqw] grid w-full grid-cols-4 gap-[2cqw] text-center">
+          {stats.map(([label, value]) => {
+            const off = statsHidden;
+            return (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={!off}
+                aria-label={off ? "Show stats" : `${label} ${value}`}
+                data-stat={label}
+                className={`rounded-[3cqw] px-[1cqw] py-[2.4cqw] transition-opacity duration-200 ${
+                  off
+                    ? chrome
+                      ? "outline-1 -outline-offset-1 outline-white/25 outline-dashed"
+                      : "opacity-0"
+                    : "bg-white/[0.06] ring-1 ring-white/[0.07]"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setStatsHidden(!statsHidden);
+                }}
+              >
+                <span className={`block ${off ? "invisible" : ""}`}>
+                  <span className="block truncate text-[2.6cqw] text-[#a09bb5]">{label}</span>
+                  <span className="mt-[0.6cqw] block text-[4.6cqw] leading-tight font-semibold tabular-nums">
+                    {value}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* Caption space below. */}
         <div className="flex-[20]" />
@@ -165,7 +190,7 @@ export default function Spotlight() {
       )}
       {chrome && (
         <p className="pointer-events-none absolute top-0 left-0 max-w-[50vw] p-4 pt-[max(env(safe-area-inset-top),1rem)] text-xs text-white/50">
-          Tap the background to hide the buttons
+          Tap a stat to hide them · tap the background to hide the buttons
         </p>
       )}
     </div>
