@@ -70,7 +70,8 @@ function CountUp({
 /**
  * A number in a glass box, pinned to one of the pitch's top corners (the
  * expected points, the team rating). The working goes in `details`: the
- * tooltip, and the accessible name after `label`.
+ * tooltip, and the accessible name after `label`. With `onClick` it's a
+ * button that opens a dialog.
  */
 export function CornerStat({
   value,
@@ -80,6 +81,7 @@ export function CornerStat({
   details = [],
   testId,
   meter,
+  onClick,
 }: {
   /** Counts to each new value; null (no projections yet) shows a dash. */
   value: number | null;
@@ -92,12 +94,16 @@ export function CornerStat({
   testId: string;
   /** A bar under the caption, filled `pct` of the way (0–100) in `color`. */
   meter?: { pct: number; color: string };
+  onClick?: () => void;
 }) {
+  const Tag = onClick ? "button" : "div";
   return (
     // .glass-pill sets position: relative, so the pitch positions a wrapper round this.
-    <div
+    <Tag
+      {...(onClick
+        ? { type: "button" as const, onClick, "aria-haspopup": "dialog" as const }
+        : { role: "img" })}
       data-testid={testId}
-      role="img"
       aria-label={[label, ...details].join(". ")}
       title={details.join("\n") || undefined}
       className="glass-pill flex size-16 flex-col items-center justify-center gap-1 rounded-xl"
@@ -115,6 +121,6 @@ export function CornerStat({
           />
         </span>
       )}
-    </div>
+    </Tag>
   );
 }

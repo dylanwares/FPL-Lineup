@@ -568,6 +568,14 @@ test("the team rating compares the XI with the best £100.0m team", async ({ pag
   const pct = Number((await rating.getByTestId("team-rating-value").textContent())!.replace("%", ""));
   expect(await rating.getByTestId("team-rating-meter").getAttribute("style")).toContain(`width: ${pct}%`);
   await expect(rating).toHaveAttribute("aria-label", /Best XI: (.+, ){10}/);
+
+  // A tap opens the best XI on its own pitch.
+  await rating.click();
+  const dialog = page.getByRole("dialog", { name: /Best XI · GW\d+/ });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("[data-player]")).toHaveCount(11);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
 });
 
 test("past gameweeks show each player's points and opponent, whatever the metric", async ({
