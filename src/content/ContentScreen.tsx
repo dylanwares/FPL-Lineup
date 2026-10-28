@@ -1,0 +1,209 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GlassPanel } from "@/components/ui/GlassPanel";
+import { PillButton } from "@/components/ui/PillButton";
+import { Segmented } from "@/components/ui/Segmented";
+import { readPref, writePref } from "@/lib/prefs";
+import { useFlip } from "@/lib/use-flip";
+import { fetchContent, filterContent, FILTERS, timeAgo, type ContentFilter } from "./feed";
+import type { ContentEntry } from "./model";
+import { readOpened, withOpened, writeOpened } from "./read";
+
+const FILTER_KEY = "fpl-lineup:content-filter";
+/** Coming back to the tab after this long fetches the latest items again. */
+const STALE_MS = 5 * 60_000;
+
+interface Feed {
+  items: ContentEntry[];
+  loadedAt: number;
+}
+
+/** The Content tab: the latest FPL articles and videos, newest first. Each opens at its source in a new tab. */
+export function ContentScreen({ active }: { active: boolean }) {
+  const [filter, setFilter] = useState<ContentFilter>(() =>
+    readPref(
+      FILTER_KEY,
+      FILTERS.map(([f]) => f),
+      "all",
+    ),
+  );
+  const [feed, setFeed] = useState<Feed | null>(null);
+  const [failed, setFailed] = useState(false);
+  // Items already opened, dimmed so new ones stand out. Kept on this device only.
+  const [opened, setOpened] = useState(readOpened);
+  const loading = useRef(false);
+
+  const markOpened = useCallback((url: string) => {
+    setOpened((prev) => {
+      const next = withOpened(prev, url);
+      writeOpened(next);
+      return next;
+    });
+  }, []);
+
+  /** Fetches the feed; state only changes once the request settles. */
+  const load = useCallback(() => {
+    if (loading.current) return;
+    loading.current = true;
+    fetchContent()
+      .then(
+        (items) => {
+          setFeed({ items, loadedAt: Date.now() });
+          setFailed(false);
+        },
+        () => setFailed(true),
+      )
+      .finally(() => (loading.current = false));
+  }, []);
+
+  // Only fetched once the tab is opened; refreshed when it comes back after a while.
+  useEffect(() => {
+    if (active && (!feed || Date.now() - feed.loadedAt > STALE_MS)) load();
+  }, [active, feed, load]);
+
+  // Filtering is local, so rows that stay slide into their new places.
+  const items = feed ? filterContent(feed.items, filter) : [];
+  const openedSet = new Set(opened);
+  const flip = useFlip<string>(items.map((i) => i.url).join(), { enter: true });
+
+  return (
+    <section aria-labelledby="content-title" className="flex flex-col gap-3 py-4">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-muted uppercase">FPL news & tips</p>
+          <h1 id="content-title" className="font-display text-xl font-bold">
+            Content
+          </h1>
+        </div>
+        <Segmented
+          label="Show"
+          value={filter}
+          options={FILTERS}
+          onChange={(f) => {
+            setFilter(f);
+            writePref(FILTER_KEY, f);
+          }}
+        />
+      </div>
+
+      {items.length ? (
+        <GlassPanel as="ul" className="divide-y divide-line overflow-hidden">
+          {items.map((item) => (
+            <li key={item.url} ref={flip(item.url)}>
+              <ContentCard
+                item={item}
+                now={feed!.loadedAt}
+                opened={openedSet.has(item.url)}
+                onOpen={markOpened}
+              />
+            </li>
+          ))}
+        </GlassPanel>
+      ) : feed ? (
+        <GlassPanel className="p-5 text-sm text-muted">Nothing new right now. Check back soon.</GlassPanel>
+      ) : failed ? (
+        <GlassPanel className="flex items-center justify-between gap-3 p-5 text-sm text-muted">
+          Couldn’t load the latest content. Check your connection.
+          <PillButton
+            size="sm"
+            onClick={() => {
+              setFailed(false);
+              load();
+            }}
+          >
+            Retry
+          </PillButton>
+        </GlassPanel>
+      ) : (
+        <div className="glass h-[36rem] animate-pulse rounded-2xl" />
+      )}
+    </section>
+  );
+}
+
+function ContentCard({
+  item,
+  now,
+  opened,
+  onOpen,
+}: {
+  item: ContentEntry;
+  now: number;
+  opened: boolean;
+  onOpen: (url: string) => void;
+}) {
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      // Click, Enter and middle-click all open it.
+      onClick={() => onOpen(item.url)}
+      onAuxClick={() => onOpen(item.url)}
+      className={`flex gap-3 p-3 transition-[background-color,opacity] hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-mint ${opened ? "opacity-40" : ""}`}
+    >
+      <Thumbnail item={item} />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
+          <span className="truncate">{item.source}</span>
+          <span aria-hidden="true">·</span>
+          <time dateTime={item.publishedAt} className="shrink-0">
+            {timeAgo(item.publishedAt, now)}
+          </time>
+        </p>
+        <h2 className="mt-0.5 line-clamp-3 text-[14px] leading-snug font-semibold">{item.title}</h2>
+        {item.summary && (
+          <p className="mt-1 line-clamp-2 hidden text-[12.5px] leading-snug text-muted sm:block">
+            {item.summary}
+          </p>
+        )}
+        <span className="sr-only">
+          {opened && "Already opened. "}
+          {item.kind === "video" ? "Video" : "Article"}, opens in a new tab
+        </span>
+      </div>
+    </a>
+  );
+}
+
+/** A 16:9 picture, with a play badge on videos; the source's initials when there's no picture. */
+function Thumbnail({ item }: { item: ContentEntry }) {
+  return (
+    <div className="relative aspect-video w-32 shrink-0 self-start overflow-hidden rounded-xl bg-line">
+      {item.imageUrl ? (
+        // Pictures come from many hosts and are small: a plain lazy <img>, not next/image.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.imageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="size-full object-cover"
+        />
+      ) : (
+        <span className="grid size-full place-items-center font-display text-lg font-bold text-faint">
+          {initials(item.source)}
+        </span>
+      )}
+      {item.kind === "video" && (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid size-8 place-items-center rounded-full bg-black/55 text-white">
+            <svg viewBox="0 0 24 24" className="ml-0.5 size-3.5" aria-hidden="true">
+              <path d="M7 4.5v15l12.5-7.5z" fill="currentColor" />
+            </svg>
+          </span>
+        </span>
+      )}
+    </div>
+  );
+}
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();

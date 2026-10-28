@@ -8,18 +8,24 @@ import { usePathname } from "next/navigation";
  * which Next's router follows), so /fixtures links, reloads and Back work.
  */
 
-export type Tab = "planner" | "fixtures" | "scout";
+export type Tab = "planner" | "fixtures" | "scout" | "content";
 
-export const TAB_PATHS: Record<Tab, string> = { planner: "/", fixtures: "/fixtures", scout: "/scout" };
+export const TAB_PATHS: Record<Tab, string> = {
+  planner: "/",
+  fixtures: "/fixtures",
+  scout: "/scout",
+  content: "/content",
+};
 
 export const TAB_TITLES: Record<Tab, string> = {
   planner: "FPL Lineup — Fantasy Premier League planner",
   fixtures: "Fixtures · FPL Lineup",
   scout: "Scout · FPL Lineup",
+  content: "Content · FPL Lineup",
 };
 
 const tabOf = (pathname: string): Tab =>
-  pathname === TAB_PATHS.fixtures ? "fixtures" : pathname === TAB_PATHS.scout ? "scout" : "planner";
+  (Object.keys(TAB_PATHS) as Tab[]).find((t) => t !== "planner" && TAB_PATHS[t] === pathname) ?? "planner";
 
 /** A tab's own query string (Scout's filters), put back in the URL when the tab returns. */
 const tabSearch: Partial<Record<Tab, string>> = {};

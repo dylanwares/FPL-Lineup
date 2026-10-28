@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-/** The install manifest: standalone, dark splash, the crown icon, and shortcuts to both tabs. */
+/** The install manifest: standalone, dark splash, the crown icon, and shortcuts to every tab. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
@@ -24,6 +24,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { name: "Planner", url: "/", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Fixtures", url: "/fixtures", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Scout", url: "/scout", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Content", url: "/content", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }
