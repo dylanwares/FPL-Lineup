@@ -1,5 +1,5 @@
-import type { ChipName } from "../../src/config/rules";
-import { fetchJson } from "../../src/lib/fetch-json";
+import type { ChipName } from "@/config/rules";
+import { fetchJson } from "@/lib/fetch-json";
 import type { DataSource, SourceData } from "./sources";
 
 const BASE = "https://fantasy.premierleague.com/api";

@@ -1,6 +1,6 @@
-import type { Kit } from "../../src/config/kits";
-import type { SeasonRules } from "../../src/config/rules";
-import { BOOTSTRAP_FORMAT, STAT_KEYS, STAT_SCALES, type BootstrapFile } from "../../src/data/format";
+import type { Kit } from "@/config/kits";
+import type { SeasonRules } from "@/config/rules";
+import { BOOTSTRAP_FORMAT, STAT_KEYS, STAT_SCALES, type BootstrapFile } from "@/data/format";
 import type { Projections, SourceData } from "./sources";
 
 export interface BuildResult {

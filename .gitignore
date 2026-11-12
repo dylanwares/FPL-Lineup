@@ -41,10 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# generated game data (pnpm data)
-/public/data/
-/src/data/generated/
-
 # lighthouse ci
 /.lighthouseci/
 

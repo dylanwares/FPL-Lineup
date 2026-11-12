@@ -1,5 +1,5 @@
-import type { ChipName } from "../../src/config/rules";
-import type { StatKey } from "../../src/data/format";
+import type { ChipName } from "@/config/rules";
+import type { StatKey } from "@/data/format";
 
 /**
  * Normalised game data every source produces. The FPL API source is used for

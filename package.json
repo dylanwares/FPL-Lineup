@@ -3,10 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "tsx scripts/build-bootstrap.ts --if-missing",
     "dev": "next dev",
     "data": "tsx scripts/build-bootstrap.ts",
-    "prebuild": "tsx scripts/build-bootstrap.ts --if-missing",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

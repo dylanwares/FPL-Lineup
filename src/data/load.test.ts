@@ -51,7 +51,7 @@ function server(initial: { hash: string; file: BootstrapFile }) {
     if (url === "/api/version") {
       const manifest: Manifest = {
         hash: current.hash,
-        url: `/data/bootstrap.${current.hash}.json`,
+        url: `/api/bootstrap/${current.hash}`,
         season: "2026-27",
         currentGw: 1,
         nextGw: 2,
@@ -59,7 +59,7 @@ function server(initial: { hash: string; file: BootstrapFile }) {
       };
       return Response.json(manifest);
     }
-    if (url === `/data/bootstrap.${current.hash}.json`) return Response.json(current.file);
+    if (url === `/api/bootstrap/${current.hash}`) return Response.json(current.file);
     return new Response(null, { status: 404 });
   });
   return {
