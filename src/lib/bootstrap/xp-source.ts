@@ -1,4 +1,4 @@
-import { fetchJson } from "../../src/lib/fetch-json";
+import { fetchJson } from "@/lib/fetch-json";
 import type { ProjectionSource, Projections } from "./sources";
 
 export const XP_URL = "https://api.fplcopilot.com/api/expected-points";

@@ -20,7 +20,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Fetches live FPL + projections data; needed by typecheck (manifest) and build.
+      # Checks live FPL + projections data builds cleanly (the app builds it again at runtime).
       - run: pnpm data
 
       - run: pnpm lint

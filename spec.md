@@ -195,7 +195,7 @@ Each entry in `moves` has a gameweek, a type (transfer, sub, captain, vice or ch
 
 | Endpoint | Purpose | Caching |
 | --- | --- | --- |
-| GET /data/bootstrap.{hash}.json | All static game data | Immutable, served from the CDN |
+| GET /api/bootstrap/{hash} | All static game data, rebuilt from FPL every 15 minutes | Immutable per hash, served from the CDN |
 | GET /api/version | Current bootstrap hash and gameweek | Short CDN cache |
 | GET /api/team/{entryId} | Squad, bank, free transfers, chips used, selling prices | Cached for 5 minutes |
 | GET, PUT /api/plans and /api/plans/{id} | Read and save plans (signed in) | None; the version field detects conflicting edits |

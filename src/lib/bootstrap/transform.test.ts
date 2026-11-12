@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { KITS } from "../../src/config/kits";
-import { getRules } from "../../src/config/rules";
-import { decodeBootstrap } from "../../src/data/decode";
-import { fixturesFor, xpFor } from "../../src/data/model";
+import { KITS } from "@/config/kits";
+import { getRules } from "@/config/rules";
+import { decodeBootstrap } from "@/data/decode";
+import { fixturesFor, xpFor } from "@/data/model";
 import type { SourceData } from "./sources";
 import { buildBootstrap, checkChips } from "./transform";
 
