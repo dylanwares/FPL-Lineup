@@ -3,11 +3,13 @@ import { fetchJson } from "@/lib/fetch-json";
 import type {
   FixturePoints,
   FplBootstrapSlim,
+  FplElementSummary,
   FplEntry,
   FplHistory,
   FplLive,
   FplPicks,
   FplTransfer,
+  PlayerFixturePoints,
 } from "./types";
 
 /**
@@ -72,6 +74,21 @@ export async function getPicks(entryId: number, gw: number, finished: boolean): 
   if (finished) cacheLife("max");
   else cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
   return fetchJson<FplPicks>(`${BASE}/entry/${entryId}/event/${gw}/picks/`, OPTS);
+}
+
+/** A player's points in each fixture so far this season. */
+export async function getPlayerHistory(playerId: number): Promise<PlayerFixturePoints[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
+  const raw = await fetchJson<FplElementSummary>(`${BASE}/element-summary/${playerId}/`, OPTS);
+  // Keep the points per fixture only; the full response also lists every remaining fixture and past seasons.
+  return raw.history.map((h) => ({
+    gw: h.round,
+    fixture: h.fixture,
+    opponent: h.opponent_team,
+    home: h.was_home,
+    points: h.total_points,
+  }));
 }
 
 /** Every player's points in a gameweek, per fixture. Finished gameweeks never change. */

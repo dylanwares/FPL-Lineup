@@ -7,7 +7,7 @@ import { Close, EyeOff, Spotlight, Swap, Transfer } from "@/components/ui/Icons"
 import { PillButton } from "@/components/ui/PillButton";
 import { sellingPrice } from "@/engine/money";
 import { canSwap, isStarter } from "@/engine/squad";
-import { FixtureXpList } from "./FixtureXpList";
+import { FixtureColumns } from "./FixtureXpList";
 import { useGwView } from "./hooks";
 import { playerList } from "./lazy-parts";
 import { engineContext, formatPrice, playerFlag, POSITION_NAMES } from "./model";
@@ -114,10 +114,7 @@ function Sheet({ id }: { id: number }) {
           <Stat label="Owned" value={`${player.selectedBy.toFixed(1)}%`} />
         </dl>
 
-        <h3 className="mt-5 mb-2 text-[10px] font-semibold tracking-[0.2em] text-muted uppercase">
-          Fixtures & projected points
-        </h3>
-        <FixtureXpList data={data} player={player} gw={gw} />
+        <FixtureColumns data={data} player={player} gw={gw} />
 
         {state && owned && (
           <div className="mt-5 flex flex-col gap-2">

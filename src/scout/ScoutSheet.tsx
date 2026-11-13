@@ -9,7 +9,7 @@ import { PillButton } from "@/components/ui/PillButton";
 import { getRules } from "@/config/rules";
 import type { Player } from "@/data/model";
 import { stateAt } from "@/engine/plan";
-import { FixtureXpList } from "@/planner/FixtureXpList";
+import { FixtureColumns } from "@/planner/FixtureXpList";
 import { formatPrice, planResult, playerFlag, POSITION_NAMES } from "@/planner/model";
 import { openSpotlight, plannableGw, setGw, transferPlayer, usePlanner } from "@/planner/store";
 import { statDef, type ScoutContext, type StatId } from "./stats";
@@ -149,8 +149,7 @@ export function ScoutSheet({ ctx, id, onClose }: { ctx: ScoutContext; id: number
 
           <TransferIn ctx={ctx} player={player} onDone={onClose} />
 
-          <Heading>Fixtures & projected points</Heading>
-          <FixtureXpList data={data} player={player} gw={ctx.gw} />
+          <FixtureColumns data={data} player={player} gw={ctx.gw} />
 
           {SECTIONS[player.pos].map(([title, ids]) => (
             <section key={title}>

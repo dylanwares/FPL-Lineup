@@ -87,6 +87,18 @@ export interface FixturePoints {
   points: number;
 }
 
+/** /element-summary/{id}/: only the per-fixture history is read. */
+export interface FplElementSummary {
+  history: { fixture: number; round: number; opponent_team: number; was_home: boolean; total_points: number }[];
+}
+
+/** What /api/player/{id}/history returns: the player's points in each fixture played so far this season. */
+export interface PlayerFixturePoints extends FixturePoints {
+  gw: number;
+  opponent: number;
+  home: boolean;
+}
+
 /** /event/{gw}/live/, trimmed to what the past view needs. */
 export interface FplLive {
   elements: { id: number; explain: { fixture: number; stats: { points: number }[] }[] }[];
